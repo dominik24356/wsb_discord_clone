@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% block title %}#{{ channel.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: 100vh; overflow: hidden;">
+
+    <!-- LEWA KOLUMNA - lista kanałów (taka sama jak w index) -->
+    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
+        
+        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
+            <h6 class="fw-bold mb-0" style="color: white;">Discord Clone</h6>
+        </div>
+
+        <div class="p-2">
+            <a href="{% url 'chat:users_list' %}" class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
+                style="color: #949ba4;"
+                onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#949ba4';">
+                <i class="bi bi-people me-2"></i> Użytkownicy
+            </a>
+        </div>
+
+        <div class="px-3 py-2 d-flex justify-content-between align-items-center">
+            <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                Kanały tekstowe
+            </span>
+            {% if request.user.is_staff or request.user.groups.all|length > 0 %}
+            <button onclick="openCreateChannel('text')"
+                style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 18px;"
+                title="Dodaj kanał tekstowy">+</button>
+            {% endif %}
+        </div>
+
+        <div class="px-2">
+            {% for ch in text_channels %}
+            <a href="{% url 'chat:channel' ch.id %}"
+                class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
+                style="color: {% if ch.id == channel.id %}white{% else %}#949ba4{% endif %}; background-color: {% if ch.id == channel.id %}#35373c{% else %}transparent{% endif %};"
+                onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor='{% if ch.id == channel.id %}#35373c{% else %}transparent{% endif %}'; this.style.color='{% if ch.id == channel.id %}white{% else %}#949ba4{% endif %}';">
+                <i class="bi bi-hash me-2"></i>{{ ch.name }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <div class="px-3 py-2 mt-2 d-flex justify-content-between align-items-center">
+            <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                Kanały głosowe
+            </span>
+            {% if request.user.is_staff or request.user.groups.all|length > 0 %}
+            <button onclick="openCreateChannel('voice')"
+                style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 18px;"
+                title="Dodaj kanał głosowy">+</button>
+            {% endif %}
+        </div>
+        <div class="px-2">
+            {% for ch in voice_channels %}
+            <a href="{% url 'chat:channel' ch.id %}"
+                class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
+                style="color: {% if ch.id == channel.id %}white{% else %}#949ba4{% endif %};"
+                onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor='transparent';">
+                <i class="bi bi-volume-up me-2"></i>{{ ch.name }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Profil na dole -->
+        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
+            <div class="position-relative me-2">
+                {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                        style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
+                        {{ request.user.username|first|upper }}
+                    </div>
+                {% endif %}
+                <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;background:#23a559;border-radius:50%;border:2px solid #232428;"></div>
+            </div>
+            <div class="flex-grow-1" style="min-width:0;">
+                <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
+                <div style="color:#949ba4;font-size:11px;">Online</div>
+            </div>
+            <div class="d-flex gap-1">
+                <a href="{% url 'accounts:edit_profile' %}" style="color:#949ba4;"><i class="bi bi-gear"></i></a>
+                <a href="{% url 'accounts:logout' %}" style="color:#949ba4;"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- GŁÓWNA CZĘŚĆ - okno chatu -->
+    <div class="d-flex flex-column flex-grow-1" style="background-color: #313338;">
+        
+        <!-- Nagłówek kanału -->
+        <div class="p-3 d-flex align-items-center border-bottom" style="border-color: #1e1f22 !important; background-color: #313338;">
+            <i class="bi bi-{% if channel.channel_type == 'voice' %}volume-up{% else %}hash{% endif %} me-2" style="color: #949ba4;"></i>
+            <h6 class="mb-0 fw-bold" style="color: white;">{{ channel.name }}</h6>
+            {% if channel.description %}
+            <span class="ms-3" style="color: #949ba4; font-size: 13px;">{{ channel.description }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Wiadomości -->
+        <div id="messages-container" class="flex-grow-1 p-4" style="overflow-y: auto;">
+            {% if messages %}
+                {% for msg in messages %}
+                <div class="d-flex mb-3 message-item" id="msg-{{ msg.id }}">
+                    <!-- Avatar -->
+                    <div class="me-3 flex-shrink-0">
+                        {% if msg.author.avatar %}
+                            <img src="{{ msg.author.avatar.url }}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
+                        {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                                {{ msg.author.username|first|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <!-- Treść -->
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-baseline gap-2">
+                            <a href="{% url 'accounts:profile' msg.author.username %}"
+                                class="fw-bold text-decoration-none" style="color: white;">
+                                {{ msg.author.username }}
+                            </a>
+                            <span style="color: #949ba4; font-size: 11px;">
+                                {{ msg.created_at|date:"d.m.Y H:i" }}
+                            </span>
+                            <!-- Usuń wiadomość (autor lub moderator) -->
+                            {% if msg.author == request.user or is_moderator %}
+                            <form method="post" action="{% url 'chat:delete_message' msg.id %}" class="ms-auto">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm p-0" style="color: #949ba4; background: none; border: none;"
+                                    title="Usuń wiadomość">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <!-- Treść wiadomości -->
+                        {% if msg.message_type == 'text' %}
+                            <p class="mb-0" style="color: #dcddde;">{{ msg.content }}</p>
+                        {% elif msg.message_type == 'image' %}
+                            <img src="{{ msg.file.url }}" class="mt-1 rounded" style="max-width: 400px; max-height: 300px;">
+                        {% elif msg.message_type == 'audio' %}
+                            <audio controls class="mt-1">
+                                <source src="{{ msg.file.url }}">
+                            </audio>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center mt-5">
+                    <i class="bi bi-hash" style="font-size: 48px; color: #949ba4;"></i>
+                    <h5 class="mt-3" style="color: white;">Witaj na #{{ channel.name }}!</h5>
+                    <p style="color: #949ba4;">To jest początek kanału #{{ channel.name }}.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Pole wysyłania wiadomości -->
+        <div class="p-4 pt-0">
+            <div style="background-color: #383a40; border-radius: 8px; padding: 8px 16px;">
+                <form id="message-form" class="d-flex align-items-center gap-2">
+                    {% csrf_token %}
+                    <!-- Przycisk załącznika -->
+                    <label for="file-input" style="color: #949ba4; cursor: pointer; font-size: 20px;" title="Wyślij plik">
+                        <i class="bi bi-plus-circle"></i>
+                    </label>
+                    <input type="file" id="file-input" accept="image/*,audio/*" style="display:none;">
+                    
+                    <!-- Pole tekstowe -->
+                    <input type="text" id="message-input" class="flex-grow-1"
+                        style="background: none; border: none; color: white; outline: none; font-size: 15px;"
+                        placeholder="Napisz wiadomość na #{{ channel.name }}...">
+                    
+                    <!-- Przycisk wysyłania -->
+                    <button type="submit" style="background: none; border: none; color: #949ba4; font-size: 20px;">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </form>
+                <!-- Podgląd wybranego pliku -->
+                <div id="file-preview" class="mt-2" style="display:none;">
+                    <span style="color: #949ba4; font-size: 12px;" id="file-name"></span>
+                    <button onclick="clearFile()" style="background:none;border:none;color:#ed4245;font-size:12px;">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal tworzenia kanału -->
+<div id="createChannelModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#313338; border-radius:8px; padding:24px; width:460px;">
+        <h5 id="modalTitle" style="color:white;" class="mb-4">Utwórz kanał</h5>
+        <form method="post" action="{% url 'chat:create_channel' %}">
+            {% csrf_token %}
+            <input type="hidden" name="channel_type" id="channelTypeInput" value="text">
+            <div class="mb-4">
+                <label style="color:#949ba4; font-size:12px; text-transform:uppercase; letter-spacing:1px; font-weight:700;">
+                    Nazwa kanału
+                </label>
+                <input type="text" name="name" class="form-control mt-2"
+                    style="background:#1e1f22; border:none; color:white; padding:10px;"
+                    placeholder="nowy-kanał" required>
+            </div>
+            <div class="mb-4">
+                <label style="color:#949ba4; font-size:12px; text-transform:uppercase; letter-spacing:1px; font-weight:700;">
+                    Opis (opcjonalnie)
+                </label>
+                <input type="text" name="description" class="form-control mt-2"
+                    style="background:#1e1f22; border:none; color:white; padding:10px;"
+                    placeholder="Opis kanału">
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" onclick="document.getElementById('createChannelModal').style.display='none'"
+                    class="btn" style="color:white; background:none;">Anuluj</button>
+                <button type="submit" class="btn btn-accent">Utwórz kanał</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const container = document.getElementById('messages-container');
+    container.scrollTop = container.scrollHeight;
+
+    document.getElementById('file-input').addEventListener('change', function() {
+        if (this.files[0]) {
+            document.getElementById('file-preview').style.display = 'block';
+            document.getElementById('file-name').textContent = this.files[0].name;
+        }
+    });
+
+    function clearFile() {
+        document.getElementById('file-input').value = '';
+        document.getElementById('file-preview').style.display = 'none';
+        document.getElementById('file-name').textContent = '';
+    }
+
+    function openCreateChannel(type) {
+        document.getElementById('channelTypeInput').value = type;
+        document.getElementById('modalTitle').textContent = 
+            type === 'text' ? 'Utwórz kanał tekstowy' : 'Utwórz kanał głosowy';
+        document.getElementById('createChannelModal').style.display = 'flex';
+    }
+</script>
+{% endblock %}

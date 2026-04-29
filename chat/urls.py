@@ -1,14 +1,13 @@
 from django.urls import path
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from . import views
 
 app_name = 'chat'
 
-# Tymczasowy widok index - zastąpimy go prawdziwym później
-@login_required
-def temp_index(request):
-    return render(request, 'chat/index.html')
-
 urlpatterns = [
-    path('', temp_index, name='index'),
+    path('', views.index, name='index'),
+    path('channel/<int:channel_id>/', views.channel_view, name='channel'),
+    path('dm/<str:username>/', views.dm_view, name='dm'),
+    path('create-channel/', views.create_channel, name='create_channel'),
+    path('delete-message/<int:message_id>/', views.delete_message, name='delete_message'),
+    path('users/', views.users_list, name='users_list'),
 ]
