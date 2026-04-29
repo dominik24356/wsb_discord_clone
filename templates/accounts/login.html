@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Logowanie{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background-color: var(--dc-dark);">
+    <div class="card p-4" style="width: 480px; background-color: var(--dc-darker); border: none; border-radius: 8px;">
+        <div class="text-center mb-4">
+            <i class="bi bi-discord fs-1" style="color: var(--dc-accent);"></i>
+            <h2 class="mt-2" style="color: white;">Witaj ponownie!</h2>
+            <p style="color: var(--dc-muted);">Miło Cię znowu widzieć!</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color: var(--dc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
+                    Login
+                </label>
+                <input type="text" name="username" class="form-control"
+                    style="background-color: var(--dc-dark); border: none; color: white; padding: 10px;"
+                    placeholder="Twój login" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold" style="color: var(--dc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
+                    Hasło
+                </label>
+                <input type="password" name="password" class="form-control"
+                    style="background-color: var(--dc-dark); border: none; color: white; padding: 10px;"
+                    placeholder="Twoje hasło" required>
+            </div>
+            <button type="submit" class="btn btn-accent w-100 py-2 fw-bold">
+                Zaloguj się
+            </button>
+        </form>
+
+        <p class="text-center mt-3" style="color: var(--dc-muted);">
+            Nie masz konta? <a href="{% url 'accounts:register' %}">Zarejestruj się</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

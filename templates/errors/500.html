@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}500 - Błąd serwera{% endblock %}
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="text-center">
+        <h1 style="font-size: 120px; color: #ed4245; font-weight: bold;">500</h1>
+        <h2 style="color: white;">Błąd serwera</h2>
+        <p style="color: var(--dc-muted);">Coś poszło nie tak. Spróbuj ponownie później.</p>
+        <a href="{% url 'chat:index' %}" class="btn btn-accent mt-3">Wróć do chatu</a>
+    </div>
+</div>
+{% endblock %}
