@@ -230,13 +230,6 @@
     const container = document.getElementById('messages-container');
     container.scrollTop = container.scrollHeight;
 
-    document.getElementById('file-input').addEventListener('change', function() {
-        if (this.files[0]) {
-            document.getElementById('file-preview').style.display = 'block';
-            document.getElementById('file-name').textContent = this.files[0].name;
-        }
-    });
-
     function clearFile() {
         document.getElementById('file-input').value = '';
         document.getElementById('file-preview').style.display = 'none';
@@ -248,6 +241,116 @@
         document.getElementById('modalTitle').textContent = 
             type === 'text' ? 'Utwórz kanał tekstowy' : 'Utwórz kanał głosowy';
         document.getElementById('createChannelModal').style.display = 'flex';
+    }
+
+    document.getElementById('file-input').addEventListener('change', function() {
+        if (this.files[0]) {
+            document.getElementById('file-preview').style.display = 'block';
+            document.getElementById('file-name').textContent = this.files[0].name;
+        }
+    });
+
+    // WebSocket połączenie
+    const channelId = {{ channel.id }};
+    const wsUrl = `ws://${window.location.host}/ws/chat/${channelId}/`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = function() {
+        console.log('WebSocket połączony');
+    };
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'chat_message') {
+            appendMessage(data);
+        }
+    };
+
+    socket.onclose = function() {
+        console.log('WebSocket rozłączony');
+    };
+
+    // Wysyłanie wiadomości
+    document.getElementById('message-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('message-input');
+        const fileInput = document.getElementById('file-input');
+        const content = input.value.trim();
+        const file = fileInput.files[0];
+
+        if (!content && !file) return;
+
+        if (file) {
+            // Wysyłamy plik jako base64
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const isAudio = file.type.startsWith('audio/');
+                socket.send(JSON.stringify({
+                    type: isAudio ? 'audio' : 'image',
+                    content: '',
+                    file: ev.target.result,
+                    file_name: file.name
+                }));
+            };
+            reader.readAsDataURL(file);
+            clearFile();
+        } else {
+            socket.send(JSON.stringify({
+                type: 'text',
+                content: content
+            }));
+        }
+
+        input.value = '';
+    });
+
+    // Enter wysyła wiadomość
+    document.getElementById('message-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('message-form').dispatchEvent(new Event('submit'));
+        }
+    });
+
+    function appendMessage(data) {
+        const container = document.getElementById('messages-container');
+        const div = document.createElement('div');
+        div.className = 'd-flex mb-3';
+        div.id = `msg-${data.message_id}`;
+
+        let contentHtml = '';
+        if (data.message_type === 'text') {
+            contentHtml = `<p class="mb-0" style="color:#dcddde;">${escapeHtml(data.content)}</p>`;
+        } else if (data.message_type === 'image') {
+            contentHtml = `<img src="${data.file_url}" class="mt-1 rounded" style="max-width:400px;max-height:300px;">`;
+        } else if (data.message_type === 'audio') {
+            contentHtml = `<audio controls class="mt-1"><source src="${data.file_url}"></audio>`;
+        }
+
+        div.innerHTML = `
+            <div class="me-3 flex-shrink-0">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                    style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                    ${data.author[0].toUpperCase()}
+                </div>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-baseline gap-2">
+                    <a href="${data.author_url}" class="fw-bold text-decoration-none" style="color:white;">
+                        ${escapeHtml(data.author)}
+                    </a>
+                    <span style="color:#949ba4;font-size:11px;">${data.created_at}</span>
+                </div>
+                ${contentHtml}
+            </div>`;
+
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
     }
 </script>
 {% endblock %}
