@@ -21,10 +21,13 @@ def index(request):
 def channel_view(request, channel_id):
     channel = get_object_or_404(Channel, id=channel_id)
     
-    messages = Message.objects.filter(
+    chat_messages = Message.objects.filter(
         channel=channel,
         is_deleted=False
     ).select_related('author').order_by('created_at')[:50]
+
+        # Tymczasowy debug
+    print(f"Kanał: {channel.name}, Wiadomości: {chat_messages.count()}")
     
     text_channels = Channel.objects.filter(channel_type='text', is_public=True)
     voice_channels = Channel.objects.filter(channel_type='voice', is_public=True)
@@ -35,7 +38,7 @@ def channel_view(request, channel_id):
     
     return render(request, 'chat/channel.html', {
         'channel': channel,
-        'messages': messages,
+        'chat_messages': chat_messages,
         'text_channels': text_channels,
         'voice_channels': voice_channels,
         'is_moderator': is_moderator,
@@ -45,19 +48,21 @@ def channel_view(request, channel_id):
 def dm_view(request, username):
     other_user = get_object_or_404(User, username=username)
     
-    # Pobieramy wiadomości między zalogowanym a drugim użytkownikiem
-    messages = Message.objects.filter(
+    chat_messages = Message.objects.filter(
         Q(author=request.user, dm_recipient=other_user) |
         Q(author=other_user, dm_recipient=request.user),
         is_deleted=False
     ).order_by('created_at')[:50]
+
+        # Tymczasowy debug
+    print(f"DM między {request.user.username} a {other_user.username}: {chat_messages.count()} wiadomości")
     
-    # Lista użytkowników do DM (wszyscy oprócz nas)
+    
     users = User.objects.exclude(id=request.user.id)
     
     return render(request, 'chat/dm.html', {
         'other_user': other_user,
-        'messages': messages,
+        'chat_messages': chat_messages,
         'users': users,
     })
 

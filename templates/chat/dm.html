@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% block title %}DM - {{ other_user.username }}{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: 100vh; overflow: hidden;">
+
+    <!-- LEWA KOLUMNA - lista użytkowników do DM -->
+    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
+        
+        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
+            <a href="{% url 'chat:index' %}" style="color: #949ba4; text-decoration: none;">
+                <i class="bi bi-arrow-left me-2"></i>Wróć do kanałów
+            </a>
+        </div>
+
+        <div class="px-3 py-2 mt-2">
+            <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                Wiadomości prywatne
+            </span>
+        </div>
+
+        <div class="px-2">
+            {% for user in users %}
+            <a href="{% url 'chat:dm' user.username %}"
+                class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
+                style="color: {% if user.username == other_user.username %}white{% else %}#949ba4{% endif %};
+                       background-color: {% if user.username == other_user.username %}#35373c{% else %}transparent{% endif %};"
+                onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor='{% if user.username == other_user.username %}#35373c{% else %}transparent{% endif %}'; this.style.color='{% if user.username == other_user.username %}white{% else %}#949ba4{% endif %}';">
+                <div class="position-relative me-2">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">
+                    {% else %}
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:32px;height:32px;background-color:#5865f2;font-size:13px;color:white;font-weight:bold;">
+                            {{ user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;
+                        background:{% if user.is_online %}#23a559{% else %}#747f8d{% endif %};
+                        border-radius:50%;border:2px solid #2b2d31;"></div>
+                </div>
+                <div>
+                    <div style="font-size:13px;">{{ user.username }}</div>
+                    <div style="font-size:11px; color:#949ba4;">{% if user.is_online %}Online{% else %}Offline{% endif %}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Profil na dole -->
+        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
+            <div class="position-relative me-2">
+                {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                        style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
+                        {{ request.user.username|first|upper }}
+                    </div>
+                {% endif %}
+                <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;background:#23a559;border-radius:50%;border:2px solid #232428;"></div>
+            </div>
+            <div class="flex-grow-1">
+                <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
+            </div>
+            <div class="d-flex gap-1">
+                <a href="{% url 'accounts:logout' %}" style="color:#949ba4;"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- GŁÓWNA CZĘŚĆ - okno DM -->
+    <div class="d-flex flex-column flex-grow-1" style="background-color: #313338;">
+        
+        <!-- Nagłówek -->
+        <div class="p-3 d-flex align-items-center border-bottom" style="border-color: #1e1f22 !important;">
+            <div class="position-relative me-3">
+                {% if other_user.avatar %}
+                    <img src="{{ other_user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                        style="width:32px;height:32px;background-color:#5865f2;color:white;font-weight:bold;">
+                        {{ other_user.username|first|upper }}
+                    </div>
+                {% endif %}
+                <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;
+                    background:{% if other_user.is_online %}#23a559{% else %}#747f8d{% endif %};
+                    border-radius:50%;border:2px solid #313338;"></div>
+            </div>
+            <h6 class="mb-0 fw-bold" style="color: white;">{{ other_user.username }}</h6>
+            <span class="ms-2" style="color:#949ba4;font-size:12px;">
+                {% if other_user.is_online %}Online{% else %}Offline{% endif %}
+            </span>
+        </div>
+
+        <!-- Wiadomości -->
+        <div id="messages-container" class="flex-grow-1 p-4" style="overflow-y: auto;">
+            {% if chat_messages %}
+                {% for msg in chat_messages %}
+                <div class="d-flex mb-3" id="msg-{{ msg.id }}">
+                    <div class="me-3 flex-shrink-0">
+                        {% if msg.author.avatar %}
+                            <img src="{{ msg.author.avatar.url }}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
+                        {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                                {{ msg.author.username|first|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-baseline gap-2">
+                            <span class="fw-bold" style="color:white;">{{ msg.author.username }}</span>
+                            <span style="color:#949ba4;font-size:11px;">{{ msg.created_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        {% if msg.message_type == 'text' %}
+                            <p class="mb-0" style="color:#dcddde;">{{ msg.content }}</p>
+                        {% elif msg.message_type == 'image' %}
+                            <img src="{{ msg.file.url }}" class="mt-1 rounded" style="max-width:400px;max-height:300px;">
+                        {% elif msg.message_type == 'audio' %}
+                            <audio controls class="mt-1"><source src="{{ msg.file.url }}"></audio>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center mt-5">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                        style="width:80px;height:80px;background-color:#5865f2;font-size:32px;color:white;font-weight:bold;">
+                        {{ other_user.username|first|upper }}
+                    </div>
+                    <h5 style="color:white;">{{ other_user.username }}</h5>
+                    <p style="color:#949ba4;">To jest początek Twojej rozmowy z {{ other_user.username }}.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Pole wysyłania -->
+        <div class="p-4 pt-0">
+            <div style="background-color: #383a40; border-radius: 8px; padding: 8px 16px;">
+                <form id="dm-form" class="d-flex align-items-center gap-2">
+                    {% csrf_token %}
+                    <label for="file-input" style="color: #949ba4; cursor: pointer; font-size: 20px;">
+                        <i class="bi bi-plus-circle"></i>
+                    </label>
+                    <input type="file" id="file-input" accept="image/*,audio/*" style="display:none;">
+                    <input type="text" id="message-input" class="flex-grow-1"
+                        style="background: none; border: none; color: white; outline: none; font-size: 15px;"
+                        placeholder="Napisz wiadomość do {{ other_user.username }}...">
+                    <button type="submit" style="background: none; border: none; color: #949ba4; font-size: 20px;">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </form>
+                <div id="file-preview" class="mt-2" style="display:none;">
+                    <span style="color: #949ba4; font-size: 12px;" id="file-name"></span>
+                    <button onclick="clearFile()" style="background:none;border:none;color:#ed4245;font-size:12px;">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const container = document.getElementById('messages-container');
+    container.scrollTop = container.scrollHeight;
+
+    const otherUsername = '{{ other_user.username }}';
+    const wsUrl = `ws://${window.location.host}/ws/dm/${otherUsername}/`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        appendMessage(data);
+    };
+
+    document.getElementById('dm-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('message-input');
+        const fileInput = document.getElementById('file-input');
+        const content = input.value.trim();
+        const file = fileInput.files[0];
+
+        if (!content && !file) return;
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                socket.send(JSON.stringify({
+                    type: file.type.startsWith('audio/') ? 'audio' : 'image',
+                    content: '',
+                    file: ev.target.result,
+                    file_name: file.name
+                }));
+            };
+            reader.readAsDataURL(file);
+            clearFile();
+        } else {
+            socket.send(JSON.stringify({ type: 'text', content: content }));
+        }
+        input.value = '';
+    });
+
+    document.getElementById('message-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') document.getElementById('dm-form').dispatchEvent(new Event('submit'));
+    });
+
+    document.getElementById('file-input').addEventListener('change', function() {
+        if (this.files[0]) {
+            document.getElementById('file-preview').style.display = 'block';
+            document.getElementById('file-name').textContent = this.files[0].name;
+        }
+    });
+
+    function clearFile() {
+        document.getElementById('file-input').value = '';
+        document.getElementById('file-preview').style.display = 'none';
+        document.getElementById('file-name').textContent = '';
+    }
+
+    function appendMessage(data) {
+        const container = document.getElementById('messages-container');
+        const div = document.createElement('div');
+        div.className = 'd-flex mb-3';
+
+        let contentHtml = '';
+        if (data.message_type === 'text') {
+            contentHtml = `<p class="mb-0" style="color:#dcddde;">${escapeHtml(data.content)}</p>`;
+        } else if (data.message_type === 'image') {
+            contentHtml = `<img src="${data.file_url}" class="mt-1 rounded" style="max-width:400px;max-height:300px;">`;
+        } else if (data.message_type === 'audio') {
+            contentHtml = `<audio controls class="mt-1"><source src="${data.file_url}"></audio>`;
+        }
+
+        div.innerHTML = `
+            <div class="me-3 flex-shrink-0">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                    style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                    ${data.author[0].toUpperCase()}
+                </div>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="fw-bold" style="color:white;">${escapeHtml(data.author)}</span>
+                    <span style="color:#949ba4;font-size:11px;">${data.created_at}</span>
+                </div>
+                ${contentHtml}
+            </div>`;
+
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}

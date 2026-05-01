@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Użytkownicy{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: 100vh; overflow: hidden;">
+
+    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
+        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
+            <a href="{% url 'chat:index' %}" style="color: #949ba4; text-decoration: none;">
+                <i class="bi bi-arrow-left me-2"></i>Wróć do kanałów
+            </a>
+        </div>
+        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
+                {{ request.user.username|first|upper }}
+            </div>
+            <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
+        </div>
+    </div>
+
+    <div class="flex-grow-1 p-4" style="background-color: #313338; overflow-y: auto;">
+        <h4 style="color: white;" class="mb-4">
+            <i class="bi bi-people me-2" style="color: #5865f2;"></i>Użytkownicy
+        </h4>
+
+        <!-- Wyszukiwarka -->
+        <form method="get" class="mb-4">
+            <div class="input-group" style="max-width: 400px;">
+                <input type="text" name="q" value="{{ query }}" class="form-control"
+                    style="background-color: #1e1f22; border: none; color: white;"
+                    placeholder="Szukaj użytkowników...">
+                <button type="submit" class="btn btn-accent">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </form>
+
+        <div class="row g-3">
+            {% for user in users %}
+            <div class="col-md-4 col-sm-6">
+                <div class="p-3 rounded d-flex align-items-center gap-3" style="background-color: #2b2d31;">
+                    <div class="position-relative">
+                        {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" class="rounded-circle" width="48" height="48" style="object-fit:cover;">
+                        {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                style="width:48px;height:48px;background-color:#5865f2;font-size:18px;color:white;font-weight:bold;">
+                                {{ user.username|first|upper }}
+                            </div>
+                        {% endif %}
+                        <div class="position-absolute" style="bottom:0;right:0;width:12px;height:12px;
+                            background:{% if user.is_online %}#23a559{% else %}#747f8d{% endif %};
+                            border-radius:50%;border:2px solid #2b2d31;"></div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div style="color:white;font-weight:600;">{{ user.username }}</div>
+                        <div style="color:#949ba4;font-size:12px;">
+                            {% if user.is_online %}🟢 Online{% else %}⚫ Offline{% endif %}
+                        </div>
+                        {% if user.bio %}
+                        <div style="color:#949ba4;font-size:11px;margin-top:2px;">{{ user.bio|truncatechars:40 }}</div>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'chat:dm' user.username %}" class="btn btn-sm btn-accent" title="Wyślij wiadomość">
+                        <i class="bi bi-chat"></i>
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p style="color: #949ba4;">Nie znaleziono użytkowników.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

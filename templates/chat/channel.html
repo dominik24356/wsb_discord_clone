@@ -103,8 +103,8 @@
 
         <!-- Wiadomości -->
         <div id="messages-container" class="flex-grow-1 p-4" style="overflow-y: auto;">
-            {% if messages %}
-                {% for msg in messages %}
+            {% if chat_messages %}
+                {% for msg in chat_messages %}
                 <div class="d-flex mb-3 message-item" id="msg-{{ msg.id }}">
                     <!-- Avatar -->
                     <div class="me-3 flex-shrink-0">
