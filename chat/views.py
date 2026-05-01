@@ -26,9 +26,6 @@ def channel_view(request, channel_id):
         is_deleted=False
     ).select_related('author').order_by('created_at')[:50]
 
-        # Tymczasowy debug
-    print(f"Kanał: {channel.name}, Wiadomości: {chat_messages.count()}")
-    
     text_channels = Channel.objects.filter(channel_type='text', is_public=True)
     voice_channels = Channel.objects.filter(channel_type='voice', is_public=True)
 
@@ -54,10 +51,6 @@ def dm_view(request, username):
         is_deleted=False
     ).order_by('created_at')[:50]
 
-        # Tymczasowy debug
-    print(f"DM między {request.user.username} a {other_user.username}: {chat_messages.count()} wiadomości")
-    
-    
     users = User.objects.exclude(id=request.user.id)
     
     return render(request, 'chat/dm.html', {

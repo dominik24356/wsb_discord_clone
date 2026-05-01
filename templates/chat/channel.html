@@ -54,7 +54,7 @@
             {% endif %}
         </div>
         <div class="px-2">
-            {% for ch in voice_channels %}
+            {% url 'voice:room' ch.id %}
             <a href="{% url 'chat:channel' ch.id %}"
                 class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
                 style="color: {% if ch.id == channel.id %}white{% else %}#949ba4{% endif %};"

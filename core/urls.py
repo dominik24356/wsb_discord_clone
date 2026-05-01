@@ -7,6 +7,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('chat/', include('chat.urls')),
+    path('voice/', include('voice.urls')),
 ]
 
 # Serwowanie plików media lokalnie (avatary, obrazki, nagrania)

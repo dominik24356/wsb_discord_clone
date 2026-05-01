@@ -60,7 +60,7 @@
         </div>
         <div class="px-2">
             {% for channel in voice_channels %}
-            <a href="{% url 'chat:channel' channel.id %}"
+            <a href="{% url 'voice:room' channel.id %}"
                 class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
                 style="color: #949ba4;"
                 onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"

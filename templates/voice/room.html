@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block title %}🎙️ {{ channel.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: 100vh; overflow: hidden;">
+
+    <!-- LEWA KOLUMNA -->
+    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
+        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
+            <a href="{% url 'chat:index' %}" style="color: #949ba4; text-decoration: none;">
+                <i class="bi bi-arrow-left me-2"></i>Wróć do kanałów
+            </a>
+        </div>
+        <div class="p-3">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-volume-up me-2" style="color: #23a559;"></i>
+                <span style="color: white; font-weight: 600;">{{ channel.name }}</span>
+            </div>
+            <div id="participants-list">
+                <!-- Tu będą pojawiać się uczestnicy -->
+            </div>
+        </div>
+        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
+                {{ request.user.username|first|upper }}
+            </div>
+            <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
+        </div>
+    </div>
+
+    <!-- GŁÓWNA CZĘŚĆ -->
+    <div class="d-flex flex-column flex-grow-1 align-items-center justify-content-center" style="background-color: #313338;">
+        
+        <i class="bi bi-volume-up" style="font-size: 64px; color: #23a559;"></i>
+        <h4 class="mt-3" style="color: white;">{{ channel.name }}</h4>
+        <p style="color: #949ba4;">Kanał głosowy</p>
+
+        <!-- Uczestnicy -->
+        <div id="voice-participants" class="d-flex flex-wrap gap-3 justify-content-center mb-4" style="max-width: 600px;">
+            <!-- Ja -->
+            <div id="participant-me" class="d-flex flex-column align-items-center p-3 rounded" style="background-color: #2b2d31; min-width: 100px;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mb-2"
+                    style="width:64px;height:64px;background-color:#5865f2;font-size:24px;color:white;font-weight:bold;">
+                    {{ request.user.username|first|upper }}
+                </div>
+                <span style="color: white; font-size: 13px;">{{ request.user.username }}</span>
+                <span id="my-status" style="color: #23a559; font-size: 11px;">🎙️ Połączony</span>
+            </div>
+        </div>
+
+        <!-- Kontrolki -->
+        <div class="d-flex gap-3">
+            <button id="btn-mute" onclick="toggleMute()" class="btn rounded-circle d-flex align-items-center justify-content-center"
+                style="width:56px;height:56px;background-color:#2b2d31;color:white;font-size:20px;" title="Wycisz">
+                <i class="bi bi-mic" id="mic-icon"></i>
+            </button>
+            <button onclick="leaveVoice()" class="btn rounded-circle d-flex align-items-center justify-content-center"
+                style="width:56px;height:56px;background-color:#ed4245;color:white;font-size:20px;" title="Rozłącz">
+                <i class="bi bi-telephone-x"></i>
+            </button>
+        </div>
+
+        <p class="mt-3" style="color: #949ba4; font-size: 12px;" id="connection-status">Łączenie...</p>
+    </div>
+</div>
+
+<!-- Audio elementy dla zdalnych użytkowników -->
+<div id="remote-audio-container"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const channelId = {{ channel.id }};
+const myUsername = '{{ request.user.username }}';
+const wsUrl = `ws://${window.location.host}/ws/voice/${channelId}/`;
+
+let localStream = null;
+let peers = {};  // channel_name -> RTCPeerConnection
+let myChannelName = null;
+let isMuted = false;
+
+const socket = new WebSocket(wsUrl);
+
+const iceConfig = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+    ]
+};
+
+// Pobieramy mikrofon
+async function initMedia() {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        document.getElementById('connection-status').textContent = 'Połączony z kanałem głosowym';
+        document.getElementById('connection-status').style.color = '#23a559';
+    } catch (err) {
+        document.getElementById('connection-status').textContent = 'Brak dostępu do mikrofonu!';
+        document.getElementById('connection-status').style.color = '#ed4245';
+    }
+}
+
+// Tworzymy połączenie WebRTC z nowym użytkownikiem
+async function createPeer(targetChannelName, targetUsername, isInitiator) {
+    const peer = new RTCPeerConnection(iceConfig);
+    peers[targetChannelName] = peer;
+
+    // Dodajemy nasz stream
+    if (localStream) {
+        localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+    }
+
+    // Gdy dostajemy stream od drugiej strony
+    peer.ontrack = function(event) {
+        addRemoteAudio(targetChannelName, targetUsername, event.streams[0]);
+    };
+
+    // ICE candidates
+    peer.onicecandidate = function(event) {
+        if (event.candidate) {
+            socket.send(JSON.stringify({
+                type: 'ice-candidate',
+                target: targetChannelName,
+                data: event.candidate,
+            }));
+        }
+    };
+
+    peer.onconnectionstatechange = function() {
+        console.log(`Peer ${targetUsername}: ${peer.connectionState}`);
+    };
+
+    if (isInitiator) {
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        socket.send(JSON.stringify({
+            type: 'offer',
+            target: targetChannelName,
+            data: offer,
+        }));
+    }
+
+    addParticipant(targetChannelName, targetUsername);
+    return peer;
+}
+
+function addRemoteAudio(channelName, username, stream) {
+    let audio = document.getElementById(`audio-${channelName}`);
+    if (!audio) {
+        audio = document.createElement('audio');
+        audio.id = `audio-${channelName}`;
+        audio.autoplay = true;
+        document.getElementById('remote-audio-container').appendChild(audio);
+    }
+    audio.srcObject = stream;
+}
+
+function addParticipant(channelName, username) {
+    const container = document.getElementById('voice-participants');
+    if (document.getElementById(`participant-${channelName}`)) return;
+
+    const div = document.createElement('div');
+    div.id = `participant-${channelName}`;
+    div.className = 'd-flex flex-column align-items-center p-3 rounded';
+    div.style.backgroundColor = '#2b2d31';
+    div.style.minWidth = '100px';
+    div.innerHTML = `
+        <div class="rounded-circle d-flex align-items-center justify-content-center mb-2"
+            style="width:64px;height:64px;background-color:#5865f2;font-size:24px;color:white;font-weight:bold;">
+            ${username[0].toUpperCase()}
+        </div>
+        <span style="color:white;font-size:13px;">${username}</span>
+        <span style="color:#23a559;font-size:11px;">🎙️ Połączony</span>
+    `;
+    container.appendChild(div);
+}
+
+function removeParticipant(channelName) {
+    const el = document.getElementById(`participant-${channelName}`);
+    if (el) el.remove();
+    const audio = document.getElementById(`audio-${channelName}`);
+    if (audio) audio.remove();
+    if (peers[channelName]) {
+        peers[channelName].close();
+        delete peers[channelName];
+    }
+}
+
+function toggleMute() {
+    if (!localStream) return;
+    isMuted = !isMuted;
+    localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+    document.getElementById('mic-icon').className = isMuted ? 'bi bi-mic-mute' : 'bi bi-mic';
+    document.getElementById('btn-mute').style.backgroundColor = isMuted ? '#ed4245' : '#2b2d31';
+}
+
+function leaveVoice() {
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    Object.values(peers).forEach(p => p.close());
+    socket.close();
+    window.location.href = '{% url "chat:index" %}';
+}
+
+socket.onopen = async function() {
+    await initMedia();
+};
+
+socket.onmessage = async function(e) {
+    const data = JSON.parse(e.data);
+
+    if (data.type === 'user_joined') {
+        // Ktoś dołączył — inicjujemy połączenie
+        if (data.channel_name !== myChannelName && data.username !== myUsername) {
+            await createPeer(data.channel_name, data.username, true);
+        }
+        if (!myChannelName && data.username === myUsername) {
+            myChannelName = data.channel_name;
+        }
+    }
+
+    else if (data.type === 'user_left') {
+        removeParticipant(data.channel_name);
+    }
+
+    else if (data.type === 'offer') {
+        const peer = await createPeer(data.sender, data.username, false);
+        await peer.setRemoteDescription(new RTCSessionDescription(data.data));
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        socket.send(JSON.stringify({
+            type: 'answer',
+            target: data.sender,
+            data: answer,
+        }));
+    }
+
+    else if (data.type === 'answer') {
+        const peer = peers[data.sender];
+        if (peer) await peer.setRemoteDescription(new RTCSessionDescription(data.data));
+    }
+
+    else if (data.type === 'ice-candidate') {
+        const peer = peers[data.sender];
+        if (peer) await peer.addIceCandidate(new RTCIceCandidate(data.data));
+    }
+};
+
+socket.onclose = function() {
+    document.getElementById('connection-status').textContent = 'Rozłączono';
+    document.getElementById('connection-status').style.color = '#ed4245';
+};
+</script>
+{% endblock %}
