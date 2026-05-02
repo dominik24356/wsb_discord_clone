@@ -207,7 +207,7 @@ function toggleSidebar() {
 
 const channelId = {{ channel.id }};
 const myUsername = '{{ request.user.username }}';
-const wsUrl = `ws://${window.location.host}/ws/voice/${channelId}/`;
+const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/voice/${channelId}/`;
 
 let localStream = null;
 let peers = {};

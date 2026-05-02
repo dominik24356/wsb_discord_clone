@@ -122,7 +122,7 @@
     <div id="notification-container"></div>
 
     <script>
-    window.notifSocket = new WebSocket(`ws://${window.location.host}/ws/notifications/`);
+    window.notifSocket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/notifications/`);
 
     notifSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);

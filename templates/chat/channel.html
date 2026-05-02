@@ -286,7 +286,7 @@
 
     // WebSocket
     const channelId = {{ channel.id }};
-    const wsUrl = `ws://${window.location.host}/ws/chat/${channelId}/`;
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/chat/${channelId}/`;
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = function() { console.log('WebSocket połączony'); };
