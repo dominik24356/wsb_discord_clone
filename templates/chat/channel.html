@@ -176,7 +176,15 @@
                         <i class="bi bi-plus-circle"></i>
                     </label>
                     <input type="file" id="file-input" accept="image/*,audio/*" style="display:none;">
-                    
+                    <!-- Przycisk nagrywania głosówki -->
+                    <button id="record-btn" type="button"
+                        style="background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer;"
+                        title="Przytrzymaj aby nagrać głosówkę">
+                        <i class="bi bi-mic" id="record-icon"></i>
+                    </button>
+                    <span id="record-status" style="color:#ed4245; font-size:12px; display:none;">
+                        <i class="bi bi-record-fill"></i> Nagrywanie...
+                    </span>
                     <!-- Pole tekstowe -->
                     <input type="text" id="message-input" class="flex-grow-1"
                         style="background: none; border: none; color: white; outline: none; font-size: 15px;"
@@ -323,6 +331,18 @@
         div.className = 'd-flex mb-3';
         div.id = `msg-${data.message_id}`;
 
+        // Avatar
+        let avatarHtml = '';
+        if (data.author_avatar && !data.author_avatar.includes('default_avatar')) {
+            avatarHtml = `<img src="${data.author_avatar}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">`;
+        } else {
+            avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                ${data.author[0].toUpperCase()}
+            </div>`;
+        }
+
+        // Treść
         let contentHtml = '';
         if (data.message_type === 'text') {
             contentHtml = `<p class="mb-0" style="color:#dcddde;">${escapeHtml(data.content)}</p>`;
@@ -332,19 +352,28 @@
             contentHtml = `<audio controls class="mt-1"><source src="${data.file_url}"></audio>`;
         }
 
+        // Przycisk usuwania
+        const currentUser = '{{ request.user.username }}';
+        const isModerator = {{ is_moderator|yesno:"true,false" }};
+        const canDelete = data.author === currentUser || isModerator;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const deleteBtn = canDelete ? `
+            <form method="post" action="/chat/delete-message/${data.message_id}/" class="ms-auto">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                <button type="submit" class="btn btn-sm p-0" style="color:#949ba4;background:none;border:none;" title="Usuń wiadomość">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>` : '';
+
         div.innerHTML = `
-            <div class="me-3 flex-shrink-0">
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                    style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
-                    ${data.author[0].toUpperCase()}
-                </div>
-            </div>
+            <div class="me-3 flex-shrink-0">${avatarHtml}</div>
             <div class="flex-grow-1">
                 <div class="d-flex align-items-baseline gap-2">
                     <a href="${data.author_url}" class="fw-bold text-decoration-none" style="color:white;">
                         ${escapeHtml(data.author)}
                     </a>
                     <span style="color:#949ba4;font-size:11px;">${data.created_at}</span>
+                    ${deleteBtn}
                 </div>
                 ${contentHtml}
             </div>`;
@@ -357,6 +386,78 @@
         const div = document.createElement('div');
         div.appendChild(document.createTextNode(text));
         return div.innerHTML;
+    }
+
+
+        // Nagrywanie głosówek
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingStream = null;
+
+    let isRecording = false;
+
+    document.getElementById('record-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (!isRecording) {
+            isRecording = true;
+            startRecording(e);
+        } else {
+            isRecording = false;
+            stopRecording(e);
+        }
+    });
+
+    async function startRecording(e) {
+        e.preventDefault();
+        try {
+            recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(recordingStream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = function(e) {
+                audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = function() {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                sendAudioMessage(audioBlob);
+                recordingStream.getTracks().forEach(t => t.stop());
+            };
+
+            mediaRecorder.start();
+
+            // Wizualny efekt nagrywania
+            document.getElementById('record-icon').className = 'bi bi-mic-fill';
+            document.getElementById('record-btn').style.color = '#ed4245';
+            document.getElementById('record-status').style.display = 'inline';
+
+        } catch(err) {
+            console.error('Brak dostępu do mikrofonu:', err);
+        }
+    }
+
+    function stopRecording(e) {
+        e.preventDefault();
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        // Reset wizualny
+        document.getElementById('record-icon').className = 'bi bi-mic';
+        document.getElementById('record-btn').style.color = '#949ba4';
+        document.getElementById('record-status').style.display = 'none';
+    }
+
+    function sendAudioMessage(audioBlob) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            socket.send(JSON.stringify({
+                type: 'audio',
+                content: '',
+                file: ev.target.result,
+                file_name: `voice_${Date.now()}.webm`
+            }));
+        };
+        reader.readAsDataURL(audioBlob);
     }
 </script>
 {% endblock %}
