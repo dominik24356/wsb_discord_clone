@@ -1,26 +1,14 @@
 {% extends 'base.html' %}
+{% load chat_tags %}
 {% block title %}Edytuj profil{% endblock %}
 
 {% block content %}
 <div class="d-flex" style="height: 100vh; overflow: hidden;">
 
-    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
-        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
-            <a href="{% url 'accounts:profile' request.user.username %}" style="color: #949ba4; text-decoration: none;">
-                <i class="bi bi-arrow-left me-2"></i>Wróć do profilu
-            </a>
-        </div>
-        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
-                style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
-                {{ request.user.username|first|upper }}
-            </div>
-            <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
-        </div>
-    </div>
+    {% sidebar %}
 
     <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="background-color: #313338;">
-        <div class="p-4 rounded" style="background-color:#2b2d31; width:500px;">
+        <div class="p-4 rounded" style="background-color:#2b2d31; width:520px; max-width:95vw;">
             <h5 style="color:white;" class="mb-4">
                 <i class="bi bi-person-gear me-2" style="color:#5865f2;"></i>Edytuj profil
             </h5>
@@ -30,39 +18,59 @@
                 
                 <!-- Podgląd avatara -->
                 <div class="text-center mb-4">
-                    {% if request.user.avatar %}
-                        <img src="{{ request.user.avatar.url }}" class="rounded-circle mb-2"
-                            style="width:80px;height:80px;object-fit:cover;" id="avatar-preview">
-                    {% else %}
-                        <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
-                            style="width:80px;height:80px;background-color:#5865f2;font-size:32px;color:white;font-weight:bold;"
-                            id="avatar-preview-placeholder">
-                            {{ request.user.username|first|upper }}
-                        </div>
-                    {% endif %}
-                    <div>
-                        <label for="id_avatar" class="btn btn-sm" style="background-color:#4752c4;color:white;cursor:pointer;">
-                            <i class="bi bi-camera me-1"></i>Zmień zdjęcie
+                    <div class="position-relative d-inline-block">
+                        {% if request.user.avatar %}
+                            <img src="{{ request.user.avatar.url }}" class="rounded-circle"
+                                style="width:96px;height:96px;object-fit:cover;border:3px solid #5865f2;" id="avatar-preview">
+                        {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                                style="width:96px;height:96px;background-color:#5865f2;font-size:36px;color:white;font-weight:bold;border:3px solid #404249;"
+                                id="avatar-preview-placeholder">
+                                {{ request.user.username|first|upper }}
+                            </div>
+                        {% endif %}
+                        <!-- Overlay na avatarze -->
+                        <label for="id_avatar" 
+                            style="position:absolute;bottom:0;right:0;width:30px;height:30px;
+                                   background:#5865f2;border-radius:50%;cursor:pointer;
+                                   display:flex;align-items:center;justify-content:center;
+                                   border:2px solid #2b2d31;">
+                            <i class="bi bi-camera-fill" style="color:white;font-size:13px;"></i>
                         </label>
-                        {{ form.avatar }}
+                    </div>
+                    <div class="mt-2" style="color:#949ba4;font-size:12px;">Kliknij ikonę aparatu aby zmienić zdjęcie</div>
+                    <!-- Ukryty input pliku -->
+                    <div style="display:none;">{{ form.avatar }}</div>
+                    <!-- Nazwa wybranego pliku -->
+                    <div id="file-chosen" class="mt-1" style="color:#5865f2;font-size:12px;display:none;">
+                        <i class="bi bi-check-circle me-1"></i><span id="file-chosen-name"></span>
                     </div>
                 </div>
 
+                <!-- Bio -->
                 <div class="mb-4">
-                    <label style="color:#949ba4;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+                    <label style="color:#949ba4;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700;" class="mb-2 d-block">
                         O mnie
                     </label>
-                    <textarea name="bio" class="form-control mt-2"
-                        style="background:#1e1f22;border:none;color:white;resize:none;"
+                    <textarea name="bio" class="form-control"
+                        style="background:#1e1f22;border:1px solid #404249;color:white;resize:none;border-radius:6px;"
                         rows="4" maxlength="300"
                         placeholder="Napisz coś o sobie...">{{ request.user.bio }}</textarea>
+                    <div class="text-end mt-1" style="color:#949ba4;font-size:11px;">
+                        <span id="bio-count">{{ request.user.bio|length }}</span>/300
+                    </div>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
+                <!-- Przyciski -->
+                <div class="d-flex justify-content-between align-items-center">
                     <a href="{% url 'accounts:profile' request.user.username %}"
-                        class="btn" style="color:white;background:none;">Anuluj</a>
-                    <button type="submit" class="btn btn-accent">
-                        <i class="bi bi-check me-1"></i>Zapisz zmiany
+                        class="btn d-flex align-items-center gap-2"
+                        style="color:#949ba4;background:#1e1f22;border:1px solid #404249;border-radius:6px;">
+                        <i class="bi bi-arrow-left"></i> Anuluj
+                    </a>
+                    <button type="submit" class="btn btn-accent d-flex align-items-center gap-2"
+                        style="border-radius:6px;padding:8px 20px;">
+                        <i class="bi bi-check-lg"></i> Zapisz zmiany
                     </button>
                 </div>
             </form>
@@ -73,9 +81,9 @@
 
 {% block extra_js %}
 <script>
-// Podgląd avatara przed zapisaniem
 document.getElementById('id_avatar').addEventListener('change', function() {
     if (this.files[0]) {
+        // Podgląd avatara
         const reader = new FileReader();
         reader.onload = function(e) {
             const preview = document.getElementById('avatar-preview');
@@ -85,13 +93,31 @@ document.getElementById('id_avatar').addEventListener('change', function() {
             } else if (placeholder) {
                 const img = document.createElement('img');
                 img.src = e.target.result;
-                img.className = 'rounded-circle mb-2';
-                img.style.cssText = 'width:80px;height:80px;object-fit:cover;';
+                img.className = 'rounded-circle';
+                img.style.cssText = 'width:96px;height:96px;object-fit:cover;border:3px solid #5865f2;';
                 img.id = 'avatar-preview';
                 placeholder.replaceWith(img);
             }
         };
         reader.readAsDataURL(this.files[0]);
+
+        // Nazwa pliku
+        const fileChosen = document.getElementById('file-chosen');
+        const fileChosenName = document.getElementById('file-chosen-name');
+        fileChosen.style.display = 'block';
+        fileChosenName.textContent = this.files[0].name;
+    }
+});
+
+// Licznik znaków bio
+const bioTextarea = document.querySelector('textarea[name="bio"]');
+const bioCount = document.getElementById('bio-count');
+bioTextarea.addEventListener('input', function() {
+    bioCount.textContent = this.value.length;
+    if (this.value.length > 280) {
+        bioCount.style.color = '#ed4245';
+    } else {
+        bioCount.style.color = '#949ba4';
     }
 });
 </script>

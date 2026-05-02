@@ -1,23 +1,11 @@
 {% extends 'base.html' %}
+{% load chat_tags %}
 {% block title %}Użytkownicy{% endblock %}
 
 {% block content %}
 <div class="d-flex" style="height: 100vh; overflow: hidden;">
 
-    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
-        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
-            <a href="{% url 'chat:index' %}" style="color: #949ba4; text-decoration: none;">
-                <i class="bi bi-arrow-left me-2"></i>Wróć do kanałów
-            </a>
-        </div>
-        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
-                style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
-                {{ request.user.username|first|upper }}
-            </div>
-            <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
-        </div>
-    </div>
+    {% sidebar %}
 
     <div class="flex-grow-1 p-4" style="background-color: #313338; overflow-y: auto;">
         <h4 style="color: white;" class="mb-4">
