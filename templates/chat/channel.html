@@ -2,45 +2,114 @@
 {% load chat_tags %}
 {% block title %}#{{ channel.name }}{% endblock %}
 
-{% block content %}
-<div class="d-flex" style="height: 100vh; overflow: hidden;">
+{% block extra_css %}
+<style>
+@media (max-width: 768px) {
+    #sidebar-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+    #sidebar-wrapper {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        height: 100vh;
+        height: 100dvh;
+        z-index: 999;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+    }
+    #sidebar-wrapper.sidebar-open {
+        left: 0;
+    }
+    #sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 998;
+    }
+    #sidebar-overlay.active {
+        display: block;
+    }
+    .channel-header {
+        padding-left: 56px !important;
+    }
+    .message-item img {
+        max-width: 100% !important;
+    }
+    #messages-container {
+        padding: 12px !important;
+    }
+    .message-input-area {
+        padding: 8px !important;
+    }
+    #createChannelModal > div {
+        width: 95vw !important;
+        margin: 0 auto;
+    }
+}
+</style>
+{% endblock %}
 
-    <!-- LEWA KOLUMNA-->
-    {% sidebar %}
+{% block content %}
+<div class="d-flex" style="height: 100vh; height: 100dvh; overflow: hidden; position: relative;">
+
+    <!-- Overlay dla mobile -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Przycisk hamburger - tylko na mobile -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()"
+        style="display:none;position:fixed;top:10px;left:10px;z-index:1000;
+               background:#5865f2;border:none;color:white;width:36px;height:36px;
+               border-radius:8px;font-size:18px;cursor:pointer;">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <!-- LEWA KOLUMNA -->
+    <div id="sidebar-wrapper">
+        {% sidebar %}
+    </div>
 
     <!-- GŁÓWNA CZĘŚĆ - okno chatu -->
-    <div class="d-flex flex-column flex-grow-1" style="background-color: #313338;">
-        
+    <div class="d-flex flex-column flex-grow-1" style="background-color: #313338; min-width: 0;">
+
         <!-- Nagłówek kanału -->
-        <div class="p-3 d-flex align-items-center border-bottom" style="border-color: #1e1f22 !important; background-color: #313338;">
-            <i class="bi bi-{% if channel.channel_type == 'voice' %}volume-up{% else %}hash{% endif %} me-2" style="color: #949ba4;"></i>
-            <h6 class="mb-0 fw-bold" style="color: white;">{{ channel.name }}</h6>
+        <div class="p-3 d-flex align-items-center border-bottom channel-header"
+            style="border-color: #1e1f22 !important; background-color: #313338;">
+            <i class="bi bi-{% if channel.channel_type == 'voice' %}volume-up{% else %}hash{% endif %} me-2"
+                style="color: #949ba4;"></i>
+            <h6 class="mb-0 fw-bold text-truncate" style="color: white;">{{ channel.name }}</h6>
             {% if channel.description %}
-            <span class="ms-3" style="color: #949ba4; font-size: 13px;">{{ channel.description }}</span>
+            <span class="ms-3 d-none d-md-inline text-truncate" style="color: #949ba4; font-size: 13px;">
+                {{ channel.description }}
+            </span>
             {% endif %}
         </div>
 
-<!-- Wiadomości -->
-        <div id="messages-container" class="flex-grow-1 p-4" style="overflow-y: auto;">
+        <!-- Wiadomości -->
+        <div id="messages-container" class="flex-grow-1 p-3 p-md-4" style="overflow-y: auto;">
             {% if chat_messages %}
                 {% for msg in chat_messages %}
                 <div class="d-flex mb-3 message-item" id="msg-{{ msg.id }}">
                     <!-- Avatar -->
-                    <div class="me-3 flex-shrink-0">
+                    <div class="me-2 me-md-3 flex-shrink-0">
                         {% if msg.author.avatar %}
-                            <img src="{{ msg.author.avatar.url }}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
+                            <img src="{{ msg.author.avatar.url }}" class="rounded-circle"
+                                width="36" height="36" style="object-fit:cover;">
                         {% else %}
                             <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                                style="width:36px;height:36px;background-color:#5865f2;color:white;font-weight:bold;font-size:14px;">
                                 {{ msg.author.username|first|upper }}
                             </div>
                         {% endif %}
                     </div>
                     <!-- Treść -->
-                    <div class="flex-grow-1">
-                        <div class="d-flex align-items-baseline gap-2">
+                    <div class="flex-grow-1" style="min-width:0;">
+                        <div class="d-flex align-items-baseline gap-2 flex-wrap">
                             <a href="{% url 'accounts:profile' msg.author.username %}"
-                                class="fw-bold text-decoration-none" style="color: white;">
+                                class="fw-bold text-decoration-none" style="color: white; font-size:14px;">
                                 {{ msg.author.username }}
                             </a>
                             <span style="color: #949ba4; font-size: 11px;">
@@ -49,8 +118,8 @@
                             {% if msg.author == request.user or is_moderator %}
                             <form method="post" action="{% url 'chat:delete_message' msg.id %}" class="ms-auto">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm p-0" style="color: #949ba4; background: none; border: none;"
-                                    title="Usuń wiadomość">
+                                <button type="submit" class="btn btn-sm p-0"
+                                    style="color: #949ba4; background: none; border: none;" title="Usuń">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
@@ -58,41 +127,43 @@
                         </div>
                         <!-- Treść wiadomości -->
                         {% if msg.author.id in blocked_ids %}
-                            <p class="mb-0 fst-italic" style="color: #747f8d;">
-                                <i class="bi bi-slash-circle me-1"></i>Wiadomość ukryta — zablokowany użytkownik
+                            <p class="mb-0 fst-italic" style="color: #747f8d; font-size:13px;">
+                                <i class="bi bi-slash-circle me-1"></i>Wiadomość ukryta
                             </p>
                         {% else %}
                             {% if msg.message_type == 'text' %}
-                                <p class="mb-0" style="color: #dcddde;">{{ msg.content }}</p>
+                                <p class="mb-0" style="color: #dcddde; font-size:14px; word-break:break-word;">{{ msg.content }}</p>
                             {% elif msg.message_type == 'image' %}
-                                <img src="{{ msg.file.url }}" class="mt-1 rounded" style="max-width: 400px; max-height: 300px;">
+                                <img src="{{ msg.file.url }}" class="mt-1 rounded img-fluid"
+                                    style="max-width: 400px; max-height: 300px;">
                             {% elif msg.message_type == 'audio' %}
-                                <audio controls class="mt-1">
+                                <audio controls class="mt-1 w-100" style="max-width:300px;">
                                     <source src="{{ msg.file.url }}">
                                 </audio>
                             {% endif %}
                         {% endif %}
                         <!-- Reakcje -->
                         {% if not msg.author.id in blocked_ids %}
-                        <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative" id="reactions-{{ msg.id }}">
+                        <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative"
+                            id="reactions-{{ msg.id }}">
                             {% regroup msg.reactions.all by emoji as reaction_groups %}
                             {% for group in reaction_groups %}
                             <button class="reaction-btn btn btn-sm px-2 py-0 rounded-pill"
                                 data-message-id="{{ msg.id }}"
                                 data-emoji="{{ group.grouper }}"
-                                style="background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;">
+                                style="background-color:#2b2d31;color:white;font-size:12px;border:1px solid #404249;">
                                 {{ group.grouper }} {{ group.list|length }}
                             </button>
                             {% endfor %}
                             <button class="btn btn-sm px-2 py-0 add-reaction-btn"
                                 data-message-id="{{ msg.id }}"
-                                style="background:none;color:#949ba4;font-size:16px;border:none;"
-                                title="Dodaj reakcję">
+                                style="background:none;color:#949ba4;font-size:15px;border:none;">
                                 <i class="bi bi-emoji-smile"></i>
                             </button>
                             <div class="emoji-picker" id="picker-{{ msg.id }}"
-                                style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;border-radius:8px;
-                                       padding:8px;z-index:100;border:1px solid #404249;flex-wrap:wrap;max-width:200px;">
+                                style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;
+                                       border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
+                                       flex-wrap:wrap;max-width:200px;">
                                 {% for emoji in "😀😂😍🔥👍❤️😢😮🎉👀" %}
                                 <button class="btn p-1 emoji-choice"
                                     data-message-id="{{ msg.id }}"
@@ -109,41 +180,34 @@
                 <div class="text-center mt-5">
                     <i class="bi bi-hash" style="font-size: 48px; color: #949ba4;"></i>
                     <h5 class="mt-3" style="color: white;">Witaj na #{{ channel.name }}!</h5>
-                    <p style="color: #949ba4;">To jest początek kanału #{{ channel.name }}.</p>
+                    <p style="color: #949ba4;">To jest początek kanału.</p>
                 </div>
             {% endif %}
         </div>
 
         <!-- Pole wysyłania wiadomości -->
-        <div class="p-4 pt-0">
-            <div style="background-color: #383a40; border-radius: 8px; padding: 8px 16px;">
+        <div class="p-2 p-md-4 pt-0 message-input-area">
+            <div style="background-color: #383a40; border-radius: 8px; padding: 8px 12px;">
                 <form id="message-form" class="d-flex align-items-center gap-2">
                     {% csrf_token %}
-                    <!-- Przycisk załącznika -->
-                    <label for="file-input" style="color: #949ba4; cursor: pointer; font-size: 20px;" title="Wyślij plik">
+                    <label for="file-input" style="color: #949ba4; cursor: pointer; font-size: 20px; flex-shrink:0;">
                         <i class="bi bi-plus-circle"></i>
                     </label>
                     <input type="file" id="file-input" accept="image/*,audio/*" style="display:none;">
-                    <!-- Przycisk nagrywania głosówki -->
                     <button id="record-btn" type="button"
-                        style="background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer;"
-                        title="Przytrzymaj aby nagrać głosówkę">
+                        style="background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer; flex-shrink:0;">
                         <i class="bi bi-mic" id="record-icon"></i>
                     </button>
-                    <span id="record-status" style="color:#ed4245; font-size:12px; display:none;">
-                        <i class="bi bi-record-fill"></i> Nagrywanie...
+                    <span id="record-status" style="color:#ed4245; font-size:11px; display:none; flex-shrink:0;">
+                        <i class="bi bi-record-fill"></i> Nagr...
                     </span>
-                    <!-- Pole tekstowe -->
                     <input type="text" id="message-input" class="flex-grow-1"
-                        style="background: none; border: none; color: white; outline: none; font-size: 15px;"
-                        placeholder="Napisz wiadomość na #{{ channel.name }}...">
-                    
-                    <!-- Przycisk wysyłania -->
-                    <button type="submit" style="background: none; border: none; color: #949ba4; font-size: 20px;">
+                        style="background: none; border: none; color: white; outline: none; font-size: 14px; min-width:0;"
+                        placeholder="Napisz na #{{ channel.name }}...">
+                    <button type="submit" style="background: none; border: none; color: #949ba4; font-size: 20px; flex-shrink:0;">
                         <i class="bi bi-send"></i>
                     </button>
                 </form>
-                <!-- Podgląd wybranego pliku -->
                 <div id="file-preview" class="mt-2" style="display:none;">
                     <span style="color: #949ba4; font-size: 12px;" id="file-name"></span>
                     <button onclick="clearFile()" style="background:none;border:none;color:#ed4245;font-size:12px;">✕</button>
@@ -154,8 +218,8 @@
 </div>
 
 <!-- Modal tworzenia kanału -->
-<div id="createChannelModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:#313338; border-radius:8px; padding:24px; width:460px;">
+<div id="createChannelModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#313338; border-radius:8px; padding:24px; width:100%; max-width:460px;">
         <h5 id="modalTitle" style="color:white;" class="mb-4">Utwórz kanał</h5>
         <form method="post" action="{% url 'chat:create_channel' %}">
             {% csrf_token %}
@@ -192,6 +256,14 @@
     const container = document.getElementById('messages-container');
     container.scrollTop = container.scrollHeight;
 
+    // Sidebar toggle dla mobile
+    function toggleSidebar() {
+        const wrapper = document.getElementById('sidebar-wrapper');
+        const overlay = document.getElementById('sidebar-overlay');
+        wrapper.classList.toggle('sidebar-open');
+        overlay.classList.toggle('active');
+    }
+
     function clearFile() {
         document.getElementById('file-input').value = '';
         document.getElementById('file-preview').style.display = 'none';
@@ -200,7 +272,7 @@
 
     function openCreateChannel(type) {
         document.getElementById('channelTypeInput').value = type;
-        document.getElementById('modalTitle').textContent = 
+        document.getElementById('modalTitle').textContent =
             type === 'text' ? 'Utwórz kanał tekstowy' : 'Utwórz kanał głosowy';
         document.getElementById('createChannelModal').style.display = 'flex';
     }
@@ -212,20 +284,17 @@
         }
     });
 
-    // WebSocket połączenie
+    // WebSocket
     const channelId = {{ channel.id }};
     const wsUrl = `ws://${window.location.host}/ws/chat/${channelId}/`;
     const socket = new WebSocket(wsUrl);
 
-    socket.onopen = function() {
-        console.log('WebSocket połączony');
-    };
+    socket.onopen = function() { console.log('WebSocket połączony'); };
 
     socket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         if (data.type === 'chat_message') {
             appendMessage(data);
-            // Powiadomienie jeśli wiadomość od kogoś innego
             if (data.author !== '{{ request.user.username }}') {
                 showNotification(data.author, data.content, '{{ channel.name }}');
             }
@@ -234,27 +303,20 @@
         }
     };
 
-    socket.onclose = function() {
-        console.log('WebSocket rozłączony');
-    };
+    socket.onclose = function() { console.log('WebSocket rozłączony'); };
 
-    // Wysyłanie wiadomości
     document.getElementById('message-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const input = document.getElementById('message-input');
         const fileInput = document.getElementById('file-input');
         const content = input.value.trim();
         const file = fileInput.files[0];
-
         if (!content && !file) return;
-
         if (file) {
-            // Wysyłamy plik jako base64
             const reader = new FileReader();
             reader.onload = function(ev) {
-                const isAudio = file.type.startsWith('audio/');
                 socket.send(JSON.stringify({
-                    type: isAudio ? 'audio' : 'image',
+                    type: file.type.startsWith('audio/') ? 'audio' : 'image',
                     content: '',
                     file: ev.target.result,
                     file_name: file.name
@@ -263,16 +325,11 @@
             reader.readAsDataURL(file);
             clearFile();
         } else {
-            socket.send(JSON.stringify({
-                type: 'text',
-                content: content
-            }));
+            socket.send(JSON.stringify({ type: 'text', content: content }));
         }
-
         input.value = '';
     });
 
-    // Enter wysyła wiadomość
     document.getElementById('message-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             document.getElementById('message-form').dispatchEvent(new Event('submit'));
@@ -282,31 +339,28 @@
     function appendMessage(data) {
         const container = document.getElementById('messages-container');
         const div = document.createElement('div');
-        div.className = 'd-flex mb-3';
+        div.className = 'd-flex mb-3 message-item';
         div.id = `msg-${data.message_id}`;
 
-        // Avatar
         let avatarHtml = '';
         if (data.author_avatar && !data.author_avatar.includes('default_avatar')) {
-            avatarHtml = `<img src="${data.author_avatar}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">`;
+            avatarHtml = `<img src="${data.author_avatar}" class="rounded-circle" width="36" height="36" style="object-fit:cover;">`;
         } else {
             avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center"
-                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                style="width:36px;height:36px;background-color:#5865f2;color:white;font-weight:bold;font-size:14px;">
                 ${data.author[0].toUpperCase()}
             </div>`;
         }
 
-        // Treść
         let contentHtml = '';
         if (data.message_type === 'text') {
-            contentHtml = `<p class="mb-0" style="color:#dcddde;">${escapeHtml(data.content)}</p>`;
+            contentHtml = `<p class="mb-0" style="color:#dcddde;font-size:14px;word-break:break-word;">${escapeHtml(data.content)}</p>`;
         } else if (data.message_type === 'image') {
-            contentHtml = `<img src="${data.file_url}" class="mt-1 rounded" style="max-width:400px;max-height:300px;">`;
+            contentHtml = `<img src="${data.file_url}" class="mt-1 rounded img-fluid" style="max-width:400px;max-height:300px;">`;
         } else if (data.message_type === 'audio') {
-            contentHtml = `<audio controls class="mt-1"><source src="${data.file_url}"></audio>`;
+            contentHtml = `<audio controls class="mt-1 w-100" style="max-width:300px;"><source src="${data.file_url}"></audio>`;
         }
 
-        // Przycisk usuwania
         const currentUser = '{{ request.user.username }}';
         const isModerator = {{ is_moderator|yesno:"true,false" }};
         const canDelete = data.author === currentUser || isModerator;
@@ -314,22 +368,41 @@
         const deleteBtn = canDelete ? `
             <form method="post" action="/chat/delete-message/${data.message_id}/" class="ms-auto">
                 <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
-                <button type="submit" class="btn btn-sm p-0" style="color:#949ba4;background:none;border:none;" title="Usuń wiadomość">
+                <button type="submit" class="btn btn-sm p-0" style="color:#949ba4;background:none;border:none;">
                     <i class="bi bi-trash"></i>
                 </button>
             </form>` : '';
 
+        const reactionsHtml = `
+            <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative" id="reactions-${data.message_id}">
+                <button class="btn btn-sm px-2 py-0 add-reaction-btn"
+                    data-message-id="${data.message_id}"
+                    style="background:none;color:#949ba4;font-size:15px;border:none;">
+                    <i class="bi bi-emoji-smile"></i>
+                </button>
+                <div class="emoji-picker" id="picker-${data.message_id}"
+                    style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;
+                           border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
+                           flex-wrap:wrap;max-width:200px;">
+                    ${['😀','😂','😍','🔥','👍','❤️','😢','😮','🎉','👀'].map(e =>
+                        `<button class="btn p-1 emoji-choice" data-message-id="${data.message_id}"
+                            data-emoji="${e}" style="font-size:20px;background:none;border:none;">${e}</button>`
+                    ).join('')}
+                </div>
+            </div>`;
+
         div.innerHTML = `
-            <div class="me-3 flex-shrink-0">${avatarHtml}</div>
-            <div class="flex-grow-1">
-                <div class="d-flex align-items-baseline gap-2">
-                    <a href="${data.author_url}" class="fw-bold text-decoration-none" style="color:white;">
+            <div class="me-2 me-md-3 flex-shrink-0">${avatarHtml}</div>
+            <div class="flex-grow-1" style="min-width:0;">
+                <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                    <a href="${data.author_url}" class="fw-bold text-decoration-none" style="color:white;font-size:14px;">
                         ${escapeHtml(data.author)}
                     </a>
                     <span style="color:#949ba4;font-size:11px;">${data.created_at}</span>
                     ${deleteBtn}
                 </div>
                 ${contentHtml}
+                ${reactionsHtml}
             </div>`;
 
         container.appendChild(div);
@@ -342,60 +415,37 @@
         return div.innerHTML;
     }
 
-
-        // Nagrywanie głosówek
+    // Nagrywanie głosówek
     let mediaRecorder = null;
     let audioChunks = [];
     let recordingStream = null;
-
     let isRecording = false;
 
     document.getElementById('record-btn').addEventListener('click', function(e) {
         e.preventDefault();
-        if (!isRecording) {
-            isRecording = true;
-            startRecording(e);
-        } else {
-            isRecording = false;
-            stopRecording(e);
-        }
+        if (!isRecording) { isRecording = true; startRecording(e); }
+        else { isRecording = false; stopRecording(e); }
     });
 
     async function startRecording(e) {
-        e.preventDefault();
         try {
             recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(recordingStream);
             audioChunks = [];
-
-            mediaRecorder.ondataavailable = function(e) {
-                audioChunks.push(e.data);
-            };
-
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
             mediaRecorder.onstop = function() {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                sendAudioMessage(audioBlob);
+                sendAudioMessage(new Blob(audioChunks, { type: 'audio/webm' }));
                 recordingStream.getTracks().forEach(t => t.stop());
             };
-
             mediaRecorder.start();
-
-            // Wizualny efekt nagrywania
             document.getElementById('record-icon').className = 'bi bi-mic-fill';
             document.getElementById('record-btn').style.color = '#ed4245';
             document.getElementById('record-status').style.display = 'inline';
-
-        } catch(err) {
-            console.error('Brak dostępu do mikrofonu:', err);
-        }
+        } catch(err) { console.error('Brak dostępu do mikrofonu:', err); }
     }
 
     function stopRecording(e) {
-        e.preventDefault();
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-        }
-        // Reset wizualny
+        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
         document.getElementById('record-icon').className = 'bi bi-mic';
         document.getElementById('record-btn').style.color = '#949ba4';
         document.getElementById('record-status').style.display = 'none';
@@ -403,87 +453,57 @@
 
     function sendAudioMessage(audioBlob) {
         const reader = new FileReader();
-        reader.onload = function(ev) {
-            socket.send(JSON.stringify({
-                type: 'audio',
-                content: '',
-                file: ev.target.result,
-                file_name: `voice_${Date.now()}.webm`
-            }));
-        };
+        reader.onload = ev => socket.send(JSON.stringify({
+            type: 'audio', content: '', file: ev.target.result,
+            file_name: `voice_${Date.now()}.webm`
+        }));
         reader.readAsDataURL(audioBlob);
     }
 
-
-    // Reakcje emoji
+    // Reakcje
     document.addEventListener('click', function(e) {
-        // Otwieranie/zamykanie pickera
         if (e.target.closest('.add-reaction-btn')) {
             const btn = e.target.closest('.add-reaction-btn');
-            const messageId = btn.dataset.messageId;
-            const picker = document.getElementById(`picker-${messageId}`);
-            // Zamknij wszystkie inne pickery
-            document.querySelectorAll('.emoji-picker').forEach(p => {
-                if (p !== picker) p.style.display = 'none';
-            });
+            const picker = document.getElementById(`picker-${btn.dataset.messageId}`);
+            document.querySelectorAll('.emoji-picker').forEach(p => { if (p !== picker) p.style.display = 'none'; });
             picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
             return;
         }
-
-        // Wybór emoji z pickera
         if (e.target.closest('.emoji-choice')) {
             const btn = e.target.closest('.emoji-choice');
-            const messageId = btn.dataset.messageId;
-            const emoji = btn.dataset.emoji;
-            sendReaction(messageId, emoji);
-            document.getElementById(`picker-${messageId}`).style.display = 'none';
+            sendReaction(btn.dataset.messageId, btn.dataset.emoji);
+            document.getElementById(`picker-${btn.dataset.messageId}`).style.display = 'none';
             return;
         }
-
-        // Kliknięcie istniejącej reakcji (toggle)
         if (e.target.closest('.reaction-btn')) {
             const btn = e.target.closest('.reaction-btn');
-            const messageId = btn.dataset.messageId;
-            const emoji = btn.dataset.emoji;
-            sendReaction(messageId, emoji);
+            sendReaction(btn.dataset.messageId, btn.dataset.emoji);
             return;
         }
-
-        // Kliknięcie poza pickerem — zamknij
         document.querySelectorAll('.emoji-picker').forEach(p => p.style.display = 'none');
     });
 
     function sendReaction(messageId, emoji) {
-        socket.send(JSON.stringify({
-            type: 'reaction',
-            message_id: messageId,
-            emoji: emoji
-        }));
+        socket.send(JSON.stringify({ type: 'reaction', message_id: messageId, emoji: emoji }));
     }
 
     function updateReactions(messageId, reactions) {
         const container = document.getElementById(`reactions-${messageId}`);
         if (!container) return;
-
-        // Usuwamy stare przyciski reakcji
         container.querySelectorAll('.reaction-btn').forEach(b => b.remove());
-
-        // Dodajemy zaktualizowane
         const addBtn = container.querySelector('.add-reaction-btn');
         Object.entries(reactions).forEach(([emoji, count]) => {
             const btn = document.createElement('button');
             btn.className = 'reaction-btn btn btn-sm px-2 py-0 rounded-pill';
             btn.dataset.messageId = messageId;
             btn.dataset.emoji = emoji;
-            btn.style.cssText = 'background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;';
+            btn.style.cssText = 'background-color:#2b2d31;color:white;font-size:12px;border:1px solid #404249;';
             btn.textContent = `${emoji} ${count}`;
             container.insertBefore(btn, addBtn);
         });
     }
 
-    // Powiadomienia dla innych kanałów
-    const currentChannelId = {{ channel.id }};
-
+    // Powiadomienia
     async function requestNotificationPermission() {
         if ('Notification' in window && Notification.permission === 'default') {
             await Notification.requestPermission();
@@ -492,7 +512,6 @@
     requestNotificationPermission();
 
     function showNotification(author, content, channelName) {
-        // Toast w aplikacji
         const toast = document.getElementById('notification-toast');
         const text = document.getElementById('notification-text');
         if (toast && text) {
@@ -500,16 +519,9 @@
             toast.style.display = 'block';
             setTimeout(() => toast.style.display = 'none', 4000);
         }
-
-        // Powiadomienie systemowe przeglądarki
         if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(`#${channelName}`, {
-                body: `${author}: ${content.substring(0, 100)}`,
-                icon: '/static/images/default_avatar.png',
-            });
+            new Notification(`#${channelName}`, { body: `${author}: ${content.substring(0, 100)}` });
         }
-
-        // Badge na tytule strony
         document.title = `(!) #${channelName}`;
         setTimeout(() => document.title = `#{{ channel.name }}`, 5000);
     }

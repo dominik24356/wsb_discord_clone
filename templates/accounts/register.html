@@ -1,66 +1,178 @@
 {% extends 'base.html' %}
-
 {% block title %}Rejestracja{% endblock %}
 
 {% block content %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background-color: var(--dc-dark);">
-    <div class="card p-4" style="width: 480px; background-color: var(--dc-darker); border: none; border-radius: 8px;">
+<div class="min-vh-100 d-flex align-items-center justify-content-center px-3 py-5"
+    style="background: linear-gradient(135deg, #1e1f22 0%, #2b2d31 100%);">
+
+    <div class="w-100" style="max-width: 460px;">
+
+        <!-- Logo i tytuł -->
         <div class="text-center mb-4">
-            <i class="bi bi-discord fs-1" style="color: var(--dc-accent);"></i>
-            <h2 class="mt-2" style="color: white;">Utwórz konto</h2>
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                style="width:64px;height:64px;background-color:#5865f2;">
+                <i class="bi bi-discord" style="font-size:32px;color:white;"></i>
+            </div>
+            <h2 class="fw-bold mb-1" style="color:white;">Utwórz konto</h2>
+            <p style="color:#949ba4;">Dołącz do społeczności już dziś!</p>
         </div>
 
-        <form method="post">
-            {% csrf_token %}
-            <div class="mb-3">
-                <label class="form-label fw-bold" style="color: var(--dc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
-                    Login
-                </label>
-                <input type="text" name="username" class="form-control"
-                    style="background-color: var(--dc-dark); border: none; color: white; padding: 10px;"
-                    placeholder="Wybierz login" required>
-                {% if form.username.errors %}
-                    <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
-                {% endif %}
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold" style="color: var(--dc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
-                    Email
-                </label>
-                <input type="email" name="email" class="form-control"
-                    style="background-color: var(--dc-dark); border: none; color: white; padding: 10px;"
-                    placeholder="twoj@email.com" required>
-                {% if form.email.errors %}
-                    <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
-                {% endif %}
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold" style="color: var(--dc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
-                    Hasło
-                </label>
-                <input type="password" name="password1" class="form-control"
-                    style="background-color: var(--dc-dark); border: none; color: white; padding: 10px;"
-                    placeholder="Ustaw hasło" required>
-            </div>
-            <div class="mb-4">
-                <label class="form-label fw-bold" style="color: var(--dc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
-                    Powtórz hasło
-                </label>
-                <input type="password" name="password2" class="form-control"
-                    style="background-color: var(--dc-dark); border: none; color: white; padding: 10px;"
-                    placeholder="Powtórz hasło" required>
-                {% if form.password2.errors %}
-                    <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
-                {% endif %}
-            </div>
-            <button type="submit" class="btn btn-accent w-100 py-2 fw-bold">
-                Zarejestruj się
-            </button>
-        </form>
+        <!-- Karta formularza -->
+        <div class="rounded-3 p-4" style="background-color:#2b2d31;border:1px solid #404249;">
 
-        <p class="text-center mt-3" style="color: var(--dc-muted);">
-            Masz już konto? <a href="{% url 'accounts:login' %}">Zaloguj się</a>
-        </p>
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Login -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold d-block"
+                        style="color:#949ba4;font-size:11px;text-transform:uppercase;letter-spacing:1px;">
+                        Login
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"
+                            style="background:#1e1f22;border:1px solid #404249;border-right:none;color:#949ba4;">
+                            <i class="bi bi-person"></i>
+                        </span>
+                        <input type="text" name="username" class="form-control"
+                            style="background:#1e1f22;border:1px solid #404249;border-left:none;color:white;padding:10px;"
+                            placeholder="Wybierz login" required autofocus>
+                    </div>
+                    {% if form.username.errors %}
+                    <div class="d-flex align-items-center gap-1 mt-1" style="color:#ed4245;font-size:12px;">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        {{ form.username.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Email -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold d-block"
+                        style="color:#949ba4;font-size:11px;text-transform:uppercase;letter-spacing:1px;">
+                        Email
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"
+                            style="background:#1e1f22;border:1px solid #404249;border-right:none;color:#949ba4;">
+                            <i class="bi bi-envelope"></i>
+                        </span>
+                        <input type="email" name="email" class="form-control"
+                            style="background:#1e1f22;border:1px solid #404249;border-left:none;color:white;padding:10px;"
+                            placeholder="twoj@email.com" required>
+                    </div>
+                    {% if form.email.errors %}
+                    <div class="d-flex align-items-center gap-1 mt-1" style="color:#ed4245;font-size:12px;">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        {{ form.email.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Hasło -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold d-block"
+                        style="color:#949ba4;font-size:11px;text-transform:uppercase;letter-spacing:1px;">
+                        Hasło
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"
+                            style="background:#1e1f22;border:1px solid #404249;border-right:none;color:#949ba4;">
+                            <i class="bi bi-lock"></i>
+                        </span>
+                        <input type="password" name="password1" id="password1" class="form-control"
+                            style="background:#1e1f22;border:1px solid #404249;border-left:none;border-right:none;color:white;padding:10px;"
+                            placeholder="Ustaw hasło" required>
+                        <button type="button" onclick="togglePassword('password1', 'eye1')"
+                            style="background:#1e1f22;border:1px solid #404249;border-left:none;color:#949ba4;padding:0 12px;cursor:pointer;">
+                            <i class="bi bi-eye" id="eye1"></i>
+                        </button>
+                    </div>
+                    {% if form.password1.errors %}
+                    <div class="d-flex align-items-center gap-1 mt-1" style="color:#ed4245;font-size:12px;">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        {{ form.password1.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Powtórz hasło -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold d-block"
+                        style="color:#949ba4;font-size:11px;text-transform:uppercase;letter-spacing:1px;">
+                        Powtórz hasło
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"
+                            style="background:#1e1f22;border:1px solid #404249;border-right:none;color:#949ba4;">
+                            <i class="bi bi-lock-fill"></i>
+                        </span>
+                        <input type="password" name="password2" id="password2" class="form-control"
+                            style="background:#1e1f22;border:1px solid #404249;border-left:none;border-right:none;color:white;padding:10px;"
+                            placeholder="Powtórz hasło" required>
+                        <button type="button" onclick="togglePassword('password2', 'eye2')"
+                            style="background:#1e1f22;border:1px solid #404249;border-left:none;color:#949ba4;padding:0 12px;cursor:pointer;">
+                            <i class="bi bi-eye" id="eye2"></i>
+                        </button>
+                    </div>
+                    {% if form.password2.errors %}
+                    <div class="d-flex align-items-center gap-1 mt-1" style="color:#ed4245;font-size:12px;">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        {{ form.password2.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Wymagania hasła -->
+                <div class="mb-4 p-3 rounded" style="background:#1e1f22;border:1px solid #404249;">
+                    <div style="color:#949ba4;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;" class="mb-2">
+                        Wymagania hasła
+                    </div>
+                    <div class="d-flex flex-column gap-1">
+                        <div style="color:#949ba4;font-size:12px;"><i class="bi bi-check-circle me-1" style="color:#23a559;"></i>Min. 8 znaków</div>
+                        <div style="color:#949ba4;font-size:12px;"><i class="bi bi-check-circle me-1" style="color:#23a559;"></i>Nie może być zbyt podobne do loginu</div>
+                        <div style="color:#949ba4;font-size:12px;"><i class="bi bi-check-circle me-1" style="color:#23a559;"></i>Nie może być powszechnie używanym hasłem</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-accent w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-person-plus"></i>
+                    Zarejestruj się
+                </button>
+            </form>
+
+            <hr style="border-color:#404249;margin:20px 0;">
+
+            <p class="text-center mb-0" style="color:#949ba4;font-size:14px;">
+                Masz już konto?
+                <a href="{% url 'accounts:login' %}" class="fw-bold" style="color:#5865f2;">
+                    Zaloguj się
+                </a>
+            </p>
+        </div>
+
+        <!-- Link powrotu -->
+        <div class="text-center mt-3">
+            <a href="/" style="color:#949ba4;font-size:13px;text-decoration:none;">
+                <i class="bi bi-arrow-left me-1"></i>Wróć do strony głównej
+            </a>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
 {% endblock %}

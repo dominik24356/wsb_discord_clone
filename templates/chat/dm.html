@@ -1,147 +1,247 @@
 {% extends 'base.html' %}
+{% load chat_tags %}
 {% block title %}DM - {{ other_user.username }}{% endblock %}
 
-{% block content %}
-<div class="d-flex" style="height: 100vh; overflow: hidden;">
+{% block extra_css %}
+<style>
+@media (max-width: 768px) {
+    #sidebar-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+    #dm-sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        height: 100vh;
+        height: 100dvh;
+        z-index: 999;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+    }
+    #dm-sidebar.sidebar-open {
+        left: 0;
+    }
+    #sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 998;
+    }
+    #sidebar-overlay.active {
+        display: block;
+    }
+    .dm-header {
+        padding-left: 56px !important;
+    }
+    .message-item img {
+        max-width: 100% !important;
+    }
+    #messages-container {
+        padding: 12px !important;
+    }
+}
+</style>
+{% endblock %}
 
-    <!-- LEWA KOLUMNA - lista użytkowników do DM -->
-    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
-        
-        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
-            <a href="{% url 'chat:index' %}" style="color: #949ba4; text-decoration: none;">
-                <i class="bi bi-arrow-left me-2"></i>Wróć do kanałów
+{% block content %}
+<div class="d-flex" style="height: 100vh; height: 100dvh; overflow: hidden; position: relative;">
+
+    <!-- Overlay mobile -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Hamburger mobile -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()"
+        style="display:none;position:fixed;top:10px;left:10px;z-index:1000;
+               background:#5865f2;border:none;color:white;width:36px;height:36px;
+               border-radius:8px;font-size:18px;cursor:pointer;">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <!-- LEWA KOLUMNA - lista DM -->
+    <div id="dm-sidebar" class="d-flex flex-column"
+        style="width: 240px; min-width: 240px; background-color: #2b2d31; height: 100vh; height: 100dvh;">
+
+        <!-- Nagłówek -->
+        <div class="p-3 border-bottom flex-shrink-0" style="border-color: #1e1f22 !important;">
+            <a href="{% url 'chat:index' %}" class="d-flex align-items-center gap-2 text-decoration-none"
+                style="color: #949ba4;">
+                <i class="bi bi-arrow-left"></i>
+                <span style="font-size:14px;">Wróć do kanałów</span>
             </a>
         </div>
 
-        <div class="px-3 py-2 mt-2">
+        <!-- Tytuł sekcji -->
+        <div class="px-3 py-2 flex-shrink-0">
             <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
                 Wiadomości prywatne
             </span>
         </div>
 
-        <div class="px-2">
+        <!-- Lista użytkowników DM - scrolluje -->
+        <div class="flex-grow-1 px-2" style="overflow-y: auto; min-height: 0;">
             {% for user in users %}
             <a href="{% url 'chat:dm' user.username %}"
                 class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
                 style="color: {% if user.username == other_user.username %}white{% else %}#949ba4{% endif %};
                        background-color: {% if user.username == other_user.username %}#35373c{% else %}transparent{% endif %};"
                 onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
-                onmouseout="this.style.backgroundColor='{% if user.username == other_user.username %}#35373c{% else %}transparent{% endif %}'; this.style.color='{% if user.username == other_user.username %}white{% else %}#949ba4{% endif %}';">
-                <div class="position-relative me-2">
+                onmouseout="this.style.backgroundColor='{% if user.username == other_user.username %}#35373c{% else %}transparent{% endif %}';
+                            this.style.color='{% if user.username == other_user.username %}white{% else %}#949ba4{% endif %}';">
+                <div class="position-relative me-2 flex-shrink-0">
                     {% if user.avatar %}
-                        <img src="{{ user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">
+                        <img src="{{ user.avatar.url }}" class="rounded-circle"
+                            width="32" height="32" style="object-fit:cover;">
                     {% else %}
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:32px;height:32px;background-color:#5865f2;font-size:13px;color:white;font-weight:bold;">
                             {{ user.username|first|upper }}
                         </div>
                     {% endif %}
-                    <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;
-                        background:{% if user.is_online %}#23a559{% else %}#747f8d{% endif %};
-                        border-radius:50%;border:2px solid #2b2d31;"></div>
+                    <div class="position-absolute"
+                        style="bottom:0;right:0;width:10px;height:10px;
+                               background:{% if user.is_online %}#23a559{% else %}#747f8d{% endif %};
+                               border-radius:50%;border:2px solid #2b2d31;"></div>
                 </div>
-                <div>
-                    <div style="font-size:13px;">{{ user.username }}</div>
-                    <div style="font-size:11px; color:#949ba4;">{% if user.is_online %}Online{% else %}Offline{% endif %}</div>
+                <div style="min-width:0;">
+                    <div class="text-truncate" style="font-size:13px;font-weight:600;">{{ user.username }}</div>
+                    <div style="font-size:11px; color:#949ba4;">
+                        {% if user.is_online %}
+                            <span style="color:#23a559;">● Online</span>
+                        {% else %}
+                            ● Offline
+                        {% endif %}
+                    </div>
                 </div>
             </a>
             {% endfor %}
         </div>
 
         <!-- Profil na dole -->
-        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
-            <div class="position-relative me-2">
+        <div class="p-2 d-flex align-items-center gap-2 flex-shrink-0" style="background-color: #232428;">
+            <div class="position-relative flex-shrink-0">
                 {% if request.user.avatar %}
-                    <img src="{{ request.user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit: cover;">
+                    <img src="{{ request.user.avatar.url }}" class="rounded-circle"
+                        width="32" height="32" style="object-fit: cover;">
                 {% else %}
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
                         style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
                         {{ request.user.username|first|upper }}
                     </div>
                 {% endif %}
-                <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;background:#23a559;border-radius:50%;border:2px solid #232428;"></div>
+                <div class="position-absolute"
+                    style="bottom:0;right:0;width:10px;height:10px;background:#23a559;border-radius:50%;border:2px solid #232428;"></div>
             </div>
-            <div class="flex-grow-1">
-                <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
+            <div class="flex-grow-1" style="min-width:0;">
+                <div class="text-truncate" style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
+                <div style="color:#949ba4;font-size:11px;">Online</div>
             </div>
-            <div class="d-flex gap-1">
-                <a href="{% url 'accounts:logout' %}" style="color:#949ba4;"><i class="bi bi-box-arrow-right"></i></a>
+            <div class="d-flex gap-2 flex-shrink-0">
+                <a href="{% url 'accounts:profile' request.user.username %}"
+                    style="color:#949ba4;font-size:16px;" title="Profil">
+                    <i class="bi bi-gear"></i>
+                </a>
+                <a href="{% url 'accounts:logout' %}"
+                    style="color:#949ba4;font-size:16px;" title="Wyloguj">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
             </div>
         </div>
     </div>
 
     <!-- GŁÓWNA CZĘŚĆ - okno DM -->
-    <div class="d-flex flex-column flex-grow-1" style="background-color: #313338;">
-        
-        <!-- Nagłówek -->
-        <div class="p-3 d-flex align-items-center border-bottom" style="border-color: #1e1f22 !important;">
-            <div class="position-relative me-3">
+    <div class="d-flex flex-column flex-grow-1" style="background-color: #313338; min-width: 0;">
+
+        <!-- Nagłówek DM -->
+        <div class="p-3 d-flex align-items-center border-bottom dm-header flex-shrink-0"
+            style="border-color: #1e1f22 !important; background-color: #313338;">
+            <div class="position-relative me-3 flex-shrink-0">
                 {% if other_user.avatar %}
-                    <img src="{{ other_user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">
+                    <img src="{{ other_user.avatar.url }}" class="rounded-circle"
+                        width="32" height="32" style="object-fit:cover;">
                 {% else %}
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
-                        style="width:32px;height:32px;background-color:#5865f2;color:white;font-weight:bold;">
+                        style="width:32px;height:32px;background-color:#5865f2;color:white;font-weight:bold;font-size:14px;">
                         {{ other_user.username|first|upper }}
                     </div>
                 {% endif %}
-                <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;
-                    background:{% if other_user.is_online %}#23a559{% else %}#747f8d{% endif %};
-                    border-radius:50%;border:2px solid #313338;"></div>
+                <div class="position-absolute"
+                    style="bottom:0;right:0;width:10px;height:10px;
+                           background:{% if other_user.is_online %}#23a559{% else %}#747f8d{% endif %};
+                           border-radius:50%;border:2px solid #313338;"></div>
             </div>
-            <h6 class="mb-0 fw-bold" style="color: white;">{{ other_user.username }}</h6>
-            <span class="ms-2" style="color:#949ba4;font-size:12px;">
-                {% if other_user.is_online %}Online{% else %}Offline{% endif %}
-            </span>
+            <div>
+                <h6 class="mb-0 fw-bold" style="color: white;">{{ other_user.username }}</h6>
+                <span style="color:#949ba4;font-size:11px;">
+                    {% if other_user.is_online %}
+                        <span style="color:#23a559;">● Online</span>
+                    {% else %}
+                        ● Offline
+                    {% endif %}
+                </span>
+            </div>
+            <a href="{% url 'accounts:profile' other_user.username %}"
+                class="ms-auto btn btn-sm"
+                style="background-color:#2b2d31;color:#949ba4;border:1px solid #404249;">
+                <i class="bi bi-person me-1"></i>
+                <span class="d-none d-md-inline">Profil</span>
+            </a>
         </div>
 
         <!-- Wiadomości -->
-        <div id="messages-container" class="flex-grow-1 p-4" style="overflow-y: auto;">
+        <div id="messages-container" class="flex-grow-1 p-3 p-md-4" style="overflow-y: auto;">
             {% if chat_messages %}
                 {% for msg in chat_messages %}
-                <div class="d-flex mb-3" id="msg-{{ msg.id }}">
-                    <div class="me-3 flex-shrink-0">
+                <div class="d-flex mb-3 message-item" id="msg-{{ msg.id }}">
+                    <div class="me-2 me-md-3 flex-shrink-0">
                         {% if msg.author.avatar %}
-                            <img src="{{ msg.author.avatar.url }}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
+                            <img src="{{ msg.author.avatar.url }}" class="rounded-circle"
+                                width="36" height="36" style="object-fit:cover;">
                         {% else %}
                             <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                                style="width:36px;height:36px;background-color:#5865f2;color:white;font-weight:bold;font-size:14px;">
                                 {{ msg.author.username|first|upper }}
                             </div>
                         {% endif %}
                     </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex align-items-baseline gap-2">
-                            <span class="fw-bold" style="color:white;">{{ msg.author.username }}</span>
+                    <div class="flex-grow-1" style="min-width:0;">
+                        <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                            <span class="fw-bold" style="color:white;font-size:14px;">{{ msg.author.username }}</span>
                             <span style="color:#949ba4;font-size:11px;">{{ msg.created_at|date:"d.m.Y H:i" }}</span>
                         </div>
                         {% if msg.message_type == 'text' %}
-                            <p class="mb-0" style="color:#dcddde;">{{ msg.content }}</p>
+                            <p class="mb-0" style="color:#dcddde;font-size:14px;word-break:break-word;">{{ msg.content }}</p>
                         {% elif msg.message_type == 'image' %}
-                            <img src="{{ msg.file.url }}" class="mt-1 rounded" style="max-width:400px;max-height:300px;">
+                            <img src="{{ msg.file.url }}" class="mt-1 rounded img-fluid"
+                                style="max-width:400px;max-height:300px;">
                         {% elif msg.message_type == 'audio' %}
-                            <audio controls class="mt-1"><source src="{{ msg.file.url }}"></audio>
+                            <audio controls class="mt-1 w-100" style="max-width:300px;">
+                                <source src="{{ msg.file.url }}">
+                            </audio>
                         {% endif %}
                         <!-- Reakcje -->
-                        <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative" id="reactions-{{ msg.id }}">
+                        <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative"
+                            id="reactions-{{ msg.id }}">
                             {% regroup msg.reactions.all by emoji as reaction_groups %}
                             {% for group in reaction_groups %}
                             <button class="reaction-btn btn btn-sm px-2 py-0 rounded-pill"
                                 data-message-id="{{ msg.id }}"
                                 data-emoji="{{ group.grouper }}"
-                                style="background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;">
+                                style="background-color:#2b2d31;color:white;font-size:12px;border:1px solid #404249;">
                                 {{ group.grouper }} {{ group.list|length }}
                             </button>
                             {% endfor %}
                             <button class="btn btn-sm px-2 py-0 add-reaction-btn"
                                 data-message-id="{{ msg.id }}"
-                                style="background:none;color:#949ba4;font-size:16px;border:none;"
-                                title="Dodaj reakcję">
+                                style="background:none;color:#949ba4;font-size:15px;border:none;">
                                 <i class="bi bi-emoji-smile"></i>
                             </button>
                             <div class="emoji-picker" id="picker-{{ msg.id }}"
                                 style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;
-                                    border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
-                                    flex-wrap:wrap;max-width:200px;">
+                                       border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
+                                       flex-wrap:wrap;max-width:200px;">
                                 {% for emoji in "😀😂😍🔥👍❤️😢😮🎉👀" %}
                                 <button class="btn p-1 emoji-choice"
                                     data-message-id="{{ msg.id }}"
@@ -166,34 +266,34 @@
         </div>
 
         <!-- Pole wysyłania -->
-        <div class="p-4 pt-0">
-            <div style="background-color: #383a40; border-radius: 8px; padding: 8px 16px;">
+        <div class="p-2 p-md-4 pt-0 flex-shrink-0">
+            <div style="background-color: #383a40; border-radius: 8px; padding: 8px 12px;">
                 <form id="dm-form" class="d-flex align-items-center gap-2">
                     {% csrf_token %}
-                    <label for="file-input" style="color: #949ba4; cursor: pointer; font-size: 20px;">
+                    <label for="file-input"
+                        style="color: #949ba4; cursor: pointer; font-size: 20px; flex-shrink:0;">
                         <i class="bi bi-plus-circle"></i>
                     </label>
                     <input type="file" id="file-input" accept="image/*,audio/*" style="display:none;">
-
-                    <!-- Przycisk nagrywania głosówki -->
                     <button id="record-btn" type="button"
-                        style="background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer;"
-                        title="Nagraj głosówkę">
+                        style="background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer; flex-shrink:0;">
                         <i class="bi bi-mic" id="record-icon"></i>
                     </button>
-                    <span id="record-status" style="color:#ed4245; font-size:12px; display:none;">
-                        <i class="bi bi-record-fill"></i> Nagrywanie...
+                    <span id="record-status" style="color:#ed4245; font-size:11px; display:none; flex-shrink:0;">
+                        <i class="bi bi-record-fill"></i> Nagr...
                     </span>
                     <input type="text" id="message-input" class="flex-grow-1"
-                        style="background: none; border: none; color: white; outline: none; font-size: 15px;"
-                        placeholder="Napisz wiadomość do {{ other_user.username }}...">
-                    <button type="submit" style="background: none; border: none; color: #949ba4; font-size: 20px;">
+                        style="background: none; border: none; color: white; outline: none; font-size: 14px; min-width:0;"
+                        placeholder="Napisz do {{ other_user.username }}...">
+                    <button type="submit"
+                        style="background: none; border: none; color: #949ba4; font-size: 20px; flex-shrink:0;">
                         <i class="bi bi-send"></i>
                     </button>
                 </form>
                 <div id="file-preview" class="mt-2" style="display:none;">
                     <span style="color: #949ba4; font-size: 12px;" id="file-name"></span>
-                    <button onclick="clearFile()" style="background:none;border:none;color:#ed4245;font-size:12px;">✕</button>
+                    <button onclick="clearFile()"
+                        style="background:none;border:none;color:#ed4245;font-size:12px;">✕</button>
                 </div>
             </div>
         </div>
@@ -205,6 +305,13 @@
 <script>
     const container = document.getElementById('messages-container');
     container.scrollTop = container.scrollHeight;
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('dm-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.toggle('sidebar-open');
+        overlay.classList.toggle('active');
+    }
 
     const otherUsername = '{{ other_user.username }}';
     const wsUrl = `ws://${window.location.host}/ws/dm/${otherUsername}/`;
@@ -225,9 +332,7 @@
         const fileInput = document.getElementById('file-input');
         const content = input.value.trim();
         const file = fileInput.files[0];
-
         if (!content && !file) return;
-
         if (file) {
             const reader = new FileReader();
             reader.onload = function(ev) {
@@ -266,54 +371,51 @@
     function appendMessage(data) {
         const container = document.getElementById('messages-container');
         const div = document.createElement('div');
-        div.className = 'd-flex mb-3';
+        div.className = 'd-flex mb-3 message-item';
         div.id = `msg-${data.message_id}`;
 
-        // Avatar
         let avatarHtml = '';
         if (data.author_avatar && !data.author_avatar.includes('default_avatar')) {
-            avatarHtml = `<img src="${data.author_avatar}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">`;
+            avatarHtml = `<img src="${data.author_avatar}" class="rounded-circle" width="36" height="36" style="object-fit:cover;">`;
         } else {
             avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center"
-                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                style="width:36px;height:36px;background-color:#5865f2;color:white;font-weight:bold;font-size:14px;">
                 ${data.author[0].toUpperCase()}
             </div>`;
         }
 
-        // Treść
         let contentHtml = '';
         if (data.message_type === 'text') {
-            contentHtml = `<p class="mb-0" style="color:#dcddde;">${escapeHtml(data.content)}</p>`;
+            contentHtml = `<p class="mb-0" style="color:#dcddde;font-size:14px;word-break:break-word;">${escapeHtml(data.content)}</p>`;
         } else if (data.message_type === 'image') {
-            contentHtml = `<img src="${data.file_url}" class="mt-1 rounded" style="max-width:400px;max-height:300px;">`;
+            contentHtml = `<img src="${data.file_url}" class="mt-1 rounded img-fluid" style="max-width:400px;max-height:300px;">`;
         } else if (data.message_type === 'audio') {
-            contentHtml = `<audio controls class="mt-1"><source src="${data.file_url}"></audio>`;
+            contentHtml = `<audio controls class="mt-1 w-100" style="max-width:300px;"><source src="${data.file_url}"></audio>`;
         }
 
-        // Reakcje
         const reactionsHtml = `
             <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative" id="reactions-${data.message_id}">
                 <button class="btn btn-sm px-2 py-0 add-reaction-btn"
                     data-message-id="${data.message_id}"
-                    style="background:none;color:#949ba4;font-size:16px;border:none;">
+                    style="background:none;color:#949ba4;font-size:15px;border:none;">
                     <i class="bi bi-emoji-smile"></i>
                 </button>
                 <div class="emoji-picker" id="picker-${data.message_id}"
                     style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;
-                        border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
-                        flex-wrap:wrap;max-width:200px;">
-                    ${['😀','😂','😍','🔥','👍','❤️','😢','😮','🎉','👀'].map(e => 
-                        `<button class="btn p-1 emoji-choice" data-message-id="${data.message_id}" 
+                           border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
+                           flex-wrap:wrap;max-width:200px;">
+                    ${['😀','😂','😍','🔥','👍','❤️','😢','😮','🎉','👀'].map(e =>
+                        `<button class="btn p-1 emoji-choice" data-message-id="${data.message_id}"
                             data-emoji="${e}" style="font-size:20px;background:none;border:none;">${e}</button>`
                     ).join('')}
                 </div>
             </div>`;
 
         div.innerHTML = `
-            <div class="me-3 flex-shrink-0">${avatarHtml}</div>
-            <div class="flex-grow-1">
-                <div class="d-flex align-items-baseline gap-2">
-                    <span class="fw-bold" style="color:white;">${escapeHtml(data.author)}</span>
+            <div class="me-2 me-md-3 flex-shrink-0">${avatarHtml}</div>
+            <div class="flex-grow-1" style="min-width:0;">
+                <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                    <span class="fw-bold" style="color:white;font-size:14px;">${escapeHtml(data.author)}</span>
                     <span style="color:#949ba4;font-size:11px;">${data.created_at}</span>
                 </div>
                 ${contentHtml}
@@ -338,13 +440,8 @@
 
     document.getElementById('record-btn').addEventListener('click', function(e) {
         e.preventDefault();
-        if (!isRecording) {
-            isRecording = true;
-            startRecording(e);
-        } else {
-            isRecording = false;
-            stopRecording(e);
-        }
+        if (!isRecording) { isRecording = true; startRecording(e); }
+        else { isRecording = false; stopRecording(e); }
     });
 
     async function startRecording(e) {
@@ -352,31 +449,20 @@
             recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(recordingStream);
             audioChunks = [];
-
-            mediaRecorder.ondataavailable = function(e) {
-                audioChunks.push(e.data);
-            };
-
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
             mediaRecorder.onstop = function() {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                sendAudioMessage(audioBlob);
+                sendAudioMessage(new Blob(audioChunks, { type: 'audio/webm' }));
                 recordingStream.getTracks().forEach(t => t.stop());
             };
-
             mediaRecorder.start();
             document.getElementById('record-icon').className = 'bi bi-mic-fill';
             document.getElementById('record-btn').style.color = '#ed4245';
             document.getElementById('record-status').style.display = 'inline';
-
-        } catch(err) {
-            console.error('Brak dostępu do mikrofonu:', err);
-        }
+        } catch(err) { console.error('Brak dostępu do mikrofonu:', err); }
     }
 
     function stopRecording(e) {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-        }
+        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
         document.getElementById('record-icon').className = 'bi bi-mic';
         document.getElementById('record-btn').style.color = '#949ba4';
         document.getElementById('record-status').style.display = 'none';
@@ -384,26 +470,19 @@
 
     function sendAudioMessage(audioBlob) {
         const reader = new FileReader();
-        reader.onload = function(ev) {
-            socket.send(JSON.stringify({
-                type: 'audio',
-                content: '',
-                file: ev.target.result,
-                file_name: `voice_${Date.now()}.webm`
-            }));
-        };
+        reader.onload = ev => socket.send(JSON.stringify({
+            type: 'audio', content: '', file: ev.target.result,
+            file_name: `voice_${Date.now()}.webm`
+        }));
         reader.readAsDataURL(audioBlob);
     }
 
-    // Reakcje emoji
+    // Reakcje
     document.addEventListener('click', function(e) {
         if (e.target.closest('.add-reaction-btn')) {
             const btn = e.target.closest('.add-reaction-btn');
-            const messageId = btn.dataset.messageId;
-            const picker = document.getElementById(`picker-${messageId}`);
-            document.querySelectorAll('.emoji-picker').forEach(p => {
-                if (p !== picker) p.style.display = 'none';
-            });
+            const picker = document.getElementById(`picker-${btn.dataset.messageId}`);
+            document.querySelectorAll('.emoji-picker').forEach(p => { if (p !== picker) p.style.display = 'none'; });
             picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
             return;
         }
@@ -422,11 +501,7 @@
     });
 
     function sendReaction(messageId, emoji) {
-        socket.send(JSON.stringify({
-            type: 'reaction',
-            message_id: parseInt(messageId),
-            emoji: emoji
-        }));
+        socket.send(JSON.stringify({ type: 'reaction', message_id: parseInt(messageId), emoji: emoji }));
     }
 
     function updateReactions(messageId, reactions) {
@@ -439,10 +514,22 @@
             btn.className = 'reaction-btn btn btn-sm px-2 py-0 rounded-pill';
             btn.dataset.messageId = messageId;
             btn.dataset.emoji = emoji;
-            btn.style.cssText = 'background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;';
+            btn.style.cssText = 'background-color:#2b2d31;color:white;font-size:12px;border:1px solid #404249;';
             btn.textContent = `${emoji} ${count}`;
             container.insertBefore(btn, addBtn);
         });
     }
+
+    // Wycisz powiadomienia od osoby z którą rozmawiamy
+    window.addEventListener('load', function() {
+        if (window.notifSocket) {
+            const orig = window.notifSocket.onmessage;
+            window.notifSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                if (data.type === 'notification' && data.dm_username === otherUsername) return;
+                if (orig) orig(e);
+            };
+        }
+    });
 </script>
 {% endblock %}

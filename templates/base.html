@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Discord Clone{% endblock %}</title>
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
@@ -27,11 +25,6 @@
             height: 100vh;
             overflow-y: auto;
         }
-        .channel-list {
-            background-color: var(--dc-sidebar);
-            height: 100vh;
-            overflow-y: auto;
-        }
         .btn-accent {
             background-color: var(--dc-accent);
             color: white;
@@ -43,53 +36,93 @@
         }
         a { color: var(--dc-accent); text-decoration: none; }
         a:hover { text-decoration: underline; }
-
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--dc-darker); }
         ::-webkit-scrollbar-thumb { background: var(--dc-dark); border-radius: 3px; }
+        .form-control:focus {
+            border-color: #5865f2 !important;
+            box-shadow: 0 0 0 3px rgba(88,101,242,0.2) !important;
+        }
+
+        /* Notyfikacje */
+        #notification-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 360px;
+            width: calc(100vw - 40px);
+        }
+        .notif-toast {
+            background: #2b2d31;
+            border: 1px solid #5865f2;
+            border-left: 4px solid #5865f2;
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            cursor: pointer;
+            animation: notifSlideIn 0.3s ease;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .notif-toast:hover {
+            transform: translateX(-4px);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+        }
+        .notif-toast.hiding {
+            animation: notifSlideOut 0.3s ease forwards;
+        }
+        @keyframes notifSlideIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes notifSlideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(100%); }
+        }
+
+        /* Django messages toasty */
+        .django-toast {
+            animation: notifSlideIn 0.3s ease;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+
+    <!-- Django messages -->
     {% if messages %}
-        <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
-            {% for message in messages %}
-                <div class="toast show align-items-center text-white 
-                    {% if message.tags == 'error' %}bg-danger
-                    {% elif message.tags == 'success' %}bg-success
-                    {% else %}bg-secondary{% endif %} border-0 mb-2" role="alert">
-                    <div class="d-flex">
-                        <div class="toast-body">{{ message }}</div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            {% endfor %}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999; max-width: 360px; width: calc(100vw - 24px);">
+        {% for message in messages %}
+        <div class="django-toast d-flex align-items-start gap-2 p-3 rounded-3 mb-2 text-white"
+            style="background: {% if message.tags == 'error' %}#ed424530{% elif message.tags == 'success' %}#23a55930{% else %}#2b2d31{% endif %};
+                   border: 1px solid {% if message.tags == 'error' %}#ed4245{% elif message.tags == 'success' %}#23a559{% else %}#404249{% endif %};
+                   border-left: 4px solid {% if message.tags == 'error' %}#ed4245{% elif message.tags == 'success' %}#23a559{% else %}#5865f2{% endif %};">
+            <i class="bi bi-{% if message.tags == 'error' %}exclamation-circle-fill{% elif message.tags == 'success' %}check-circle-fill{% else %}info-circle-fill{% endif %} flex-shrink-0 mt-1"
+                style="color:{% if message.tags == 'error' %}#ed4245{% elif message.tags == 'success' %}#23a559{% else %}#5865f2{% endif %};font-size:16px;"></i>
+            <span style="font-size:14px;flex-grow:1;">{{ message }}</span>
+            <button type="button" onclick="this.closest('.django-toast').remove()"
+                style="background:none;border:none;color:#949ba4;padding:0;font-size:16px;line-height:1;flex-shrink:0;">
+                ✕
+            </button>
         </div>
+        {% endfor %}
+    </div>
     {% endif %}
 
     {% block content %}{% endblock %}
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
-    <!-- Powiadomienia -->
+
+    <!-- Kontener powiadomień DM -->
     {% if request.user.is_authenticated %}
-    <div id="notification-toast" 
-        style="display:none;position:fixed;bottom:20px;right:20px;
-        background:#5865f2;color:white;padding:12px 20px;border-radius:8px;
-        z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);
-        cursor:pointer;max-width:300px;">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-chat-dots-fill me-1"></i>
-            <span id="notification-text"></span>
-            <button onclick="document.getElementById('notification-toast').style.display='none'"
-                style="background:none;border:none;color:white;margin-left:8px;font-size:16px;">✕</button>
-        </div>
-    </div>
+    <div id="notification-container"></div>
 
     <script>
-    const notifSocket = new WebSocket(`ws://${window.location.host}/ws/notifications/`);
+    window.notifSocket = new WebSocket(`ws://${window.location.host}/ws/notifications/`);
 
     notifSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
@@ -99,26 +132,74 @@
     };
 
     function showDMNotification(data) {
-        const toast = document.getElementById('notification-toast');
-        const text = document.getElementById('notification-text');
+        const container = document.getElementById('notification-container');
 
-        text.textContent = `Wiadomość prywatna od ${data.author}: ${data.message.substring(0, 50)}`;
-        toast.style.display = 'block';
+        const toast = document.createElement('div');
+        toast.className = 'notif-toast';
 
-        toast.onclick = function(e) {
-            if (e.target.tagName === 'BUTTON') return;
-            toast.style.display = 'none';
+        // Skróć wiadomość ale nie ucinaj słów
+        const maxLen = 80;
+        let msg = data.message || '';
+        if (msg.length > maxLen) {
+            msg = msg.substring(0, maxLen).replace(/\s+\S*$/, '') + '...';
+        }
+
+        toast.innerHTML = `
+            <div class="d-flex align-items-start gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                    style="width:36px;height:36px;background:linear-gradient(135deg,#5865f2,#4752c4);
+                           font-size:14px;color:white;font-weight:bold;">
+                    ${data.author[0].toUpperCase()}
+                </div>
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                        <span style="color:white;font-size:13px;font-weight:600;">${escapeHtml(data.author)}</span>
+                        <span style="color:#949ba4;font-size:10px;white-space:nowrap;">teraz</span>
+                    </div>
+                    <div style="color:#dcddde;font-size:13px;line-height:1.4;word-break:break-word;">
+                        ${escapeHtml(msg)}
+                    </div>
+                    <div style="color:#5865f2;font-size:11px;margin-top:4px;">
+                        <i class="bi bi-chat-dots me-1"></i>Wiadomość prywatna
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); hideToast(this.closest('.notif-toast'))"
+                    style="background:none;border:none;color:#949ba4;padding:0;font-size:14px;
+                           line-height:1;flex-shrink:0;transition:color 0.15s;"
+                    onmouseover="this.style.color='white'"
+                    onmouseout="this.style.color='#949ba4'">✕</button>
+            </div>`;
+
+        toast.onclick = function() {
+            hideToast(toast);
             window.location.href = `/chat/dm/${data.dm_username}/`;
         };
 
-        setTimeout(() => toast.style.display = 'none', 5000);
+        container.appendChild(toast);
 
+        // Auto-ukrycie po 6 sekundach
+        setTimeout(() => hideToast(toast), 6000);
+
+        // Powiadomienie systemowe
         if ('Notification' in window && Notification.permission === 'granted') {
-            const notif = new Notification(`Wiadomość od ${data.author}`, {
-                body: data.message.substring(0, 100),
+            const notif = new Notification(`💬 ${data.author}`, {
+                body: msg,
+                icon: '/static/images/default_avatar.png',
             });
             notif.onclick = () => window.location.href = `/chat/dm/${data.dm_username}/`;
         }
+    }
+
+    function hideToast(toast) {
+        if (!toast || !toast.parentNode) return;
+        toast.classList.add('hiding');
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 300);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
     }
 
     if ('Notification' in window && Notification.permission === 'default') {

@@ -2,148 +2,326 @@
 {% load chat_tags %}
 {% block title %}{{ profile_user.username }}{% endblock %}
 
+{% block extra_css %}
+<style>
+@media (max-width: 768px) {
+    #sidebar-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+    #sidebar-wrapper {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        height: 100vh;
+        height: 100dvh;
+        z-index: 999;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+    }
+    #sidebar-wrapper.sidebar-open { left: 0; }
+    #sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 998;
+    }
+    #sidebar-overlay.active { display: block; }
+    .profile-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .profile-actions .btn { text-align: center; }
+    .profile-header-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes bannerShimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes statusPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.profile-card {
+    animation: fadeInUp 0.4s ease;
+}
+.profile-banner {
+    background: linear-gradient(135deg, #5865f2, #9b59b6, #ed4245, #5865f2);
+    background-size: 300% 300%;
+    animation: bannerShimmer 8s ease infinite;
+}
+.status-dot {
+    animation: statusPulse 2s ease infinite;
+}
+.info-section {
+    animation: slideInRight 0.4s ease both;
+}
+.info-section:nth-child(1) { animation-delay: 0.05s; }
+.info-section:nth-child(2) { animation-delay: 0.1s; }
+.info-section:nth-child(3) { animation-delay: 0.15s; }
+.info-section:nth-child(4) { animation-delay: 0.2s; }
+.badge-role {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.badge-role:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.action-btn {
+    transition: all 0.2s ease;
+}
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.avatar-img {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.avatar-img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(88,101,242,0.4);
+}
+.info-card {
+    border: 1px solid #404249;
+    border-radius: 12px;
+    background-color: #2b2d31;
+    overflow: hidden;
+}
+.info-row {
+    padding: 12px 16px;
+    border-bottom: 1px solid #404249;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: background 0.15s;
+}
+.info-row:last-child { border-bottom: none; }
+.info-row:hover { background: rgba(88,101,242,0.05); }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex" style="height: 100vh; overflow: hidden;">
+<div class="d-flex" style="height: 100vh; height: 100dvh; overflow: hidden; position: relative;">
 
-    <!-- LEWA KOLUMNA -->
-     {% sidebar %}
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <button id="sidebar-toggle" onclick="toggleSidebar()"
+        style="display:none;position:fixed;top:10px;left:10px;z-index:1000;
+               background:#5865f2;border:none;color:white;width:36px;height:36px;
+               border-radius:8px;font-size:18px;cursor:pointer;">
+        <i class="bi bi-list"></i>
+    </button>
+    <div id="sidebar-wrapper">{% sidebar %}</div>
 
-    <!-- GŁÓWNA CZĘŚĆ -->
-    <div class="flex-grow-1" style="background-color: #313338; overflow-y: auto;">
-        
-        <!-- Baner górny -->
-        <div style="height: 120px; background: linear-gradient(135deg, #5865f2, #9b59b6);"></div>
+    <!-- Główna treść -->
+    <div class="flex-grow-1" style="background-color: #313338; overflow-y: auto; min-width: 0;">
 
-        <div class="px-4 pb-4" style="margin-top: -40px;">
-            
-            <!-- Avatar i przyciski -->
-            <div class="d-flex align-items-end justify-content-between mb-3">
-                <div class="position-relative">
-                    {% if profile_user.avatar %}
-                        <img src="{{ profile_user.avatar.url }}" class="rounded-circle"
-                            style="width:80px;height:80px;object-fit:cover;border:4px solid #313338;">
-                    {% else %}
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:80px;height:80px;background-color:#5865f2;font-size:32px;
-                                   color:white;font-weight:bold;border:4px solid #313338;">
-                            {{ profile_user.username|first|upper }}
-                        </div>
-                    {% endif %}
-                    <!-- Status online -->
-                    <div class="position-absolute" style="bottom:4px;right:4px;width:16px;height:16px;
-                        background:{% if profile_user.is_online %}#23a559{% else %}#747f8d{% endif %};
-                        border-radius:50%;border:3px solid #313338;"></div>
-                </div>
+        <div style="max-width: 680px; margin: 0 auto;">
 
-                <div class="d-flex gap-2 mt-4">
-                    {% if request.user == profile_user %}
-                        <a href="{% url 'accounts:edit_profile' %}" class="btn btn-accent">
-                            <i class="bi bi-pencil me-1"></i>Edytuj profil
-                        </a>
-                    {% else %}
-                        <a href="{% url 'chat:dm' profile_user.username %}" class="btn btn-accent">
-                            <i class="bi bi-chat me-1"></i>Wyślij wiadomość
-                        </a>
-                        {% if not profile_user in request.user.blocked_users.all %}
-                        <form method="post" action="{% url 'accounts:block_user' profile_user.username %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background-color:#ed4245;color:white;">
-                                <i class="bi bi-slash-circle me-1"></i>Zablokuj
-                            </button>
-                        </form>
-                        {% else %}
-                        <form method="post" action="{% url 'accounts:unblock_user' profile_user.username %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background-color:#747f8d;color:white;">
-                                <i class="bi bi-check-circle me-1"></i>Odblokuj
-                            </button>
-                        </form>
-                        {% endif %}
-                    {% endif %}
-                </div>
+            <!-- Baner animowany -->
+            <div class="profile-banner" style="height: 100px; position: relative;">
+                <!-- Wzór siatki na banerze -->
+                <div style="position:absolute;inset:0;opacity:0.1;
+                    background-image: repeating-linear-gradient(0deg,transparent,transparent 20px,white 20px,white 21px),
+                                      repeating-linear-gradient(90deg,transparent,transparent 20px,white 20px,white 21px);"></div>
             </div>
 
-            <!-- Info o użytkowniku -->
-            <div class="p-3 rounded mb-3" style="background-color: #2b2d31;">
-                <h5 style="color:white;" class="mb-1">{{ profile_user.username }}</h5>
-                <p style="color:#949ba4;font-size:12px;" class="mb-3">
-                    {% if profile_user.is_online %}
-                        <span style="color:#23a559;">● Online</span>
-                    {% else %}
-                        <span style="color:#747f8d;">● Offline</span>
-                    {% endif %}
-                </p>
+            <div class="px-3 px-md-4 pb-4 profile-card">
 
-                <!-- O mnie -->
-                <div class="mb-3">
-                    <div style="color:#949ba4;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;" class="mb-1">
-                        O mnie
-                    </div>
-                    {% if profile_user.bio %}
-                        <p style="color:#dcddde;font-size:14px;" class="mb-0">{{ profile_user.bio }}</p>
-                    {% else %}
-                        <p style="color:#4a4d55;font-size:14px;font-style:italic;" class="mb-0">Brak opisu</p>
-                    {% endif %}
-                </div>
+                <!-- Nagłówek profilu -->
+                <div class="profile-header-row d-flex align-items-end justify-content-between mb-4"
+                    style="margin-top: -36px;">
 
-                <!-- Członek od -->
-                <div class="mb-3">
-                    <div style="color:#949ba4;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;" class="mb-1">
-                        Członek od
-                    </div>
-                    <p style="color:#dcddde;font-size:14px;" class="mb-0">
-                        {{ profile_user.date_joined|date:"d.m.Y" }}
-                    </p>
-                </div>
-
-                <!-- Role -->
-                <div class="mb-3">
-                    <div style="color:#949ba4;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;" class="mb-2">
-                        Role
-                    </div>
-                    <div class="d-flex gap-2 flex-wrap">
-                        {% if profile_user.is_superuser %}
-                            <span class="badge" style="background:linear-gradient(135deg,#f59e0b,#ef4444);padding:6px 12px;font-size:12px;font-weight:700;">
-                                👑 Superadmin
-                            </span>
-                        {% elif profile_user.is_staff %}
-                            <span class="badge" style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:6px 12px;font-size:12px;font-weight:700;">
-                                🛡️ Administrator
-                            </span>
+                    <!-- Avatar -->
+                    <div class="position-relative flex-shrink-0">
+                        {% if profile_user.avatar %}
+                            <img src="{{ profile_user.avatar.url }}" class="rounded-circle avatar-img"
+                                style="width:80px;height:80px;object-fit:cover;
+                                       border:4px solid #313338;">
+                        {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center avatar-img"
+                                style="width:80px;height:80px;
+                                       background:linear-gradient(135deg,#5865f2,#4752c4);
+                                       font-size:30px;color:white;font-weight:bold;
+                                       border:4px solid #313338;">
+                                {{ profile_user.username|first|upper }}
+                            </div>
                         {% endif %}
-                        {% for group in profile_user.groups.all %}
-                            {% if group.name == 'Administrator' %}
-                                <span class="badge" style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:6px 12px;font-size:12px;font-weight:700;">
+                        <div class="status-dot position-absolute rounded-circle"
+                            style="bottom:4px;right:4px;width:16px;height:16px;
+                                   background:{% if profile_user.is_online %}#23a559{% else %}#747f8d{% endif %};
+                                   border:3px solid #313338;"></div>
+                    </div>
+
+                    <!-- Przyciski akcji -->
+                    <div class="d-flex gap-2 profile-actions" style="margin-top: 40px;">
+                        {% if request.user == profile_user %}
+                            <a href="{% url 'accounts:edit_profile' %}" class="btn btn-accent action-btn">
+                                <i class="bi bi-pencil me-1"></i>Edytuj profil
+                            </a>
+                        {% else %}
+                            <a href="{% url 'chat:dm' profile_user.username %}"
+                                class="btn btn-accent action-btn">
+                                <i class="bi bi-chat me-1"></i>Wiadomość
+                            </a>
+                            {% if not profile_user in request.user.blocked_users.all %}
+                            <form method="post" action="{% url 'accounts:block_user' profile_user.username %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn action-btn"
+                                    style="background:#ed424520;color:#ed4245;border:1px solid #ed4245;">
+                                    <i class="bi bi-slash-circle me-1"></i>Zablokuj
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="{% url 'accounts:unblock_user' profile_user.username %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn action-btn"
+                                    style="background:#74748020;color:#949ba4;border:1px solid #747f8d;">
+                                    <i class="bi bi-check-circle me-1"></i>Odblokuj
+                                </button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Nazwa i status -->
+                <div class="mb-3">
+                    <h4 class="fw-bold mb-1" style="color:white;">{{ profile_user.username }}</h4>
+                    <span style="font-size:13px;">
+                        {% if profile_user.is_online %}
+                            <span style="color:#23a559;">● Online</span>
+                        {% else %}
+                            <span style="color:#747f8d;">● Offline</span>
+                        {% endif %}
+                    </span>
+                </div>
+
+                <!-- Karta z informacjami -->
+                <div class="info-card">
+
+                    <!-- O mnie -->
+                    <div class="info-row info-section">
+                        <span style="color:#949ba4;font-size:10px;font-weight:700;
+                                     text-transform:uppercase;letter-spacing:1px;">
+                            O mnie
+                        </span>
+                        {% if profile_user.bio %}
+                            <p class="mb-0" style="color:#dcddde;font-size:14px;
+                                                   word-break:break-word;white-space:pre-wrap;">{{ profile_user.bio }}</p>
+                        {% else %}
+                            <p class="mb-0 fst-italic" style="color:#4a4d55;font-size:13px;">
+                                Brak opisu
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Członek od -->
+                    <div class="info-row info-section">
+                        <span style="color:#949ba4;font-size:10px;font-weight:700;
+                                     text-transform:uppercase;letter-spacing:1px;">
+                            Członek od
+                        </span>
+                        <span style="color:#dcddde;font-size:14px;">
+                            <i class="bi bi-calendar3 me-1" style="color:#5865f2;"></i>
+                            {{ profile_user.date_joined|date:"d.m.Y" }}
+                        </span>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="info-row info-section">
+                        <span style="color:#949ba4;font-size:10px;font-weight:700;
+                                     text-transform:uppercase;letter-spacing:1px;" class="mb-2 d-block">
+                            Role
+                        </span>
+                        <div class="d-flex gap-2 flex-wrap">
+                            {% if profile_user.is_superuser %}
+                                <span class="badge badge-role"
+                                    style="background:linear-gradient(135deg,#f59e0b,#ef4444);
+                                           padding:6px 12px;font-size:12px;font-weight:700;">
+                                    👑 Superadmin
+                                </span>
+                            {% elif profile_user.is_staff %}
+                                <span class="badge badge-role"
+                                    style="background:linear-gradient(135deg,#ef4444,#dc2626);
+                                           padding:6px 12px;font-size:12px;font-weight:700;">
                                     🛡️ Administrator
                                 </span>
-                            {% elif group.name == 'Moderator' %}
-                                <span class="badge" style="background:linear-gradient(135deg,#5865f2,#4752c4);padding:6px 12px;font-size:12px;font-weight:700;">
-                                    ⚔️ Moderator
-                                </span>
-                            {% else %}
-                                <span class="badge" style="background-color:#2b2d31;border:1px solid #404249;padding:6px 12px;font-size:12px;color:#dcddde;">
-                                    👤 {{ group.name }}
-                                </span>
                             {% endif %}
-                        {% empty %}
-                            {% if not profile_user.is_staff and not profile_user.is_superuser %}
-                                <span style="color:#4a4d55;font-size:14px;font-style:italic;">Brak przypisanych ról</span>
-                            {% endif %}
-                        {% endfor %}
+                            {% for group in profile_user.groups.all %}
+                                {% if group.name == 'Administrator' %}
+                                    <span class="badge badge-role"
+                                        style="background:linear-gradient(135deg,#ef4444,#dc2626);
+                                               padding:6px 12px;font-size:12px;font-weight:700;">
+                                        🛡️ Administrator
+                                    </span>
+                                {% elif group.name == 'Moderator' %}
+                                    <span class="badge badge-role"
+                                        style="background:linear-gradient(135deg,#5865f2,#4752c4);
+                                               padding:6px 12px;font-size:12px;font-weight:700;">
+                                        ⚔️ Moderator
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-role"
+                                        style="background:#1e1f22;border:1px solid #404249;
+                                               padding:6px 12px;font-size:12px;color:#dcddde;">
+                                        👤 {{ group.name }}
+                                    </span>
+                                {% endif %}
+                            {% empty %}
+                                {% if not profile_user.is_staff and not profile_user.is_superuser %}
+                                    <span class="badge badge-role"
+                                        style="background:#1e1f22;border:1px solid #404249;
+                                               padding:6px 12px;font-size:12px;color:#dcddde;">
+                                        👤 Użytkownik
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
 
-                <!-- Email (widoczny tylko dla admina/moderatora) -->
-                {% if is_moderator_or_admin %}
-                <div class="mb-3">
-                    <div style="color:#949ba4;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;" class="mb-1">
-                        Email
+                    <!-- Email (tylko dla admina/moderatora) -->
+                    {% if is_moderator_or_admin %}
+                    <div class="info-row info-section">
+                        <span style="color:#949ba4;font-size:10px;font-weight:700;
+                                     text-transform:uppercase;letter-spacing:1px;">
+                            Email
+                        </span>
+                        <span style="color:#dcddde;font-size:14px;word-break:break-all;">
+                            <i class="bi bi-envelope me-1" style="color:#5865f2;"></i>
+                            {{ profile_user.email }}
+                        </span>
                     </div>
-                    <p style="color:#dcddde;font-size:14px;" class="mb-0">{{ profile_user.email }}</p>
+                    {% endif %}
+
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSidebar() {
+    document.getElementById('sidebar-wrapper').classList.toggle('sidebar-open');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+</script>
 {% endblock %}

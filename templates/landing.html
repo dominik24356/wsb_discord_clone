@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block title %}Discord Clone — Komunikuj się w czasie rzeczywistym{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-gradient {
+        background: linear-gradient(135deg, #1e1f22 0%, #2b2d31 50%, #1e1f22 100%);
+    }
+    .feature-card {
+        background-color: #2b2d31;
+        border: 1px solid #404249;
+        border-radius: 12px;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .feature-card:hover {
+        transform: translateY(-4px);
+        border-color: #5865f2;
+    }
+    .hero-badge {
+        background: rgba(88, 101, 242, 0.15);
+        border: 1px solid rgba(88, 101, 242, 0.3);
+        border-radius: 20px;
+        padding: 6px 16px;
+        color: #5865f2;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .stat-card {
+        background: rgba(88, 101, 242, 0.1);
+        border: 1px solid rgba(88, 101, 242, 0.2);
+        border-radius: 12px;
+    }
+    .navbar-custom {
+        background-color: rgba(30, 31, 34, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid #404249;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+            <i class="bi bi-discord fs-4" style="color:#5865f2;"></i>
+            <span style="color:white;font-weight:700;">Discord Clone</span>
+        </a>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            style="color:#949ba4;">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center gap-2">
+                <li class="nav-item">
+                    <a href="#features" class="nav-link" style="color:#949ba4;">Funkcje</a>
+                </li>
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a href="{% url 'chat:index' %}" class="btn btn-accent px-4">
+                        <i class="bi bi-app me-1"></i>Otwórz aplikację
+                    </a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary px-4 me-2"
+                        style="color:#dcddde;border-color:#404249;">
+                        Zaloguj się
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'accounts:register' %}" class="btn btn-accent px-4">
+                        Zarejestruj się
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero-gradient min-vh-100 d-flex align-items-center" style="padding-top: 80px;">
+    <div class="container text-center py-5">
+        <div class="mb-4">
+            <span class="hero-badge">
+                <i class="bi bi-lightning-fill me-1"></i>Real-time komunikacja
+            </span>
+        </div>
+        <h1 class="display-3 fw-bold mb-4" style="color:white; line-height:1.2;">
+            Komunikuj się<br>
+            <span style="color:#5865f2;">bez ograniczeń</span>
+        </h1>
+        <p class="lead mb-5 mx-auto" style="color:#949ba4; max-width:600px; font-size:18px;">
+            Platforma komunikacyjna z czatem tekstowym, głosowym, wiadomościami prywatnymi i reakcjami emoji — wszystko w czasie rzeczywistym.
+        </p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap mb-5">
+            {% if user.is_authenticated %}
+            <a href="{% url 'chat:index' %}" class="btn btn-accent btn-lg px-5 py-3">
+                <i class="bi bi-app me-2"></i>Otwórz aplikację
+            </a>
+            {% else %}
+            <a href="{% url 'accounts:register' %}" class="btn btn-accent btn-lg px-5 py-3">
+                <i class="bi bi-person-plus me-2"></i>Zacznij za darmo
+            </a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-lg px-5 py-3"
+                style="background:#2b2d31;color:white;border:1px solid #404249;">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Zaloguj się
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Statystyki -->
+        <div class="row g-3 justify-content-center">
+            <div class="col-auto">
+                <div class="stat-card px-4 py-3">
+                    <div style="color:white;font-size:24px;font-weight:700;">Real-time</div>
+                    <div style="color:#949ba4;font-size:13px;">WebSocket chat</div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="stat-card px-4 py-3">
+                    <div style="color:white;font-size:24px;font-weight:700;">WebRTC</div>
+                    <div style="color:#949ba4;font-size:13px;">Kanały głosowe</div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="stat-card px-4 py-3">
+                    <div style="color:white;font-size:24px;font-weight:700;">3 role</div>
+                    <div style="color:#949ba4;font-size:13px;">System uprawnień</div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="stat-card px-4 py-3">
+                    <div style="color:white;font-size:24px;font-weight:700;">E2E</div>
+                    <div style="color:#949ba4;font-size:13px;">Prywatne wiadomości</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section id="features" style="background-color:#1e1f22; padding:80px 0;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold" style="color:white;">Wszystko czego potrzebujesz</h2>
+            <p style="color:#949ba4;">Kompletna platforma komunikacyjna w jednym miejscu</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">💬</div>
+                    <h5 style="color:white;">Czat w czasie rzeczywistym</h5>
+                    <p style="color:#949ba4;font-size:14px;">Wiadomości pojawiają się natychmiast dzięki WebSocketom. Bez odświeżania strony.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">🎙️</div>
+                    <h5 style="color:white;">Kanały głosowe</h5>
+                    <p style="color:#949ba4;font-size:14px;">Rozmawiaj głosowo przez WebRTC. Widoczne efekty wizualne gdy ktoś mówi.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">✉️</div>
+                    <h5 style="color:white;">Wiadomości prywatne</h5>
+                    <p style="color:#949ba4;font-size:14px;">Komunikacja 1 na 1 z powiadomieniami w czasie rzeczywistym.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">🖼️</div>
+                    <h5 style="color:white;">Multimedia</h5>
+                    <p style="color:#949ba4;font-size:14px;">Wysyłaj obrazki, nagrania audio i głosówki bezpośrednio z przeglądarki.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">😀</div>
+                    <h5 style="color:white;">Reakcje emoji</h5>
+                    <p style="color:#949ba4;font-size:14px;">Reaguj na wiadomości emoji. Aktualizacje widoczne u wszystkich natychmiast.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">🛡️</div>
+                    <h5 style="color:white;">Role i uprawnienia</h5>
+                    <p style="color:#949ba4;font-size:14px;">System ról: Administrator, Moderator, Użytkownik z różnymi poziomami dostępu.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">🔔</div>
+                    <h5 style="color:white;">Powiadomienia</h5>
+                    <p style="color:#949ba4;font-size:14px;">Powiadomienia o nowych wiadomościach prywatnych — nawet gdy jesteś na innej stronie.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">🚫</div>
+                    <h5 style="color:white;">Moderacja</h5>
+                    <p style="color:#949ba4;font-size:14px;">Blokowanie użytkowników, usuwanie wiadomości, ukrywanie treści od zablokowanych.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="feature-card p-4 h-100">
+                    <div class="mb-3" style="font-size:36px;">📱</div>
+                    <h5 style="color:white;">Responsywność</h5>
+                    <p style="color:#949ba4;font-size:14px;">Działa na telefonie i komputerze. Bootstrap 5 zapewnia płynne działanie wszędzie.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section style="background: linear-gradient(135deg, #5865f2, #4752c4); padding:80px 0;">
+    <div class="container text-center">
+        <h2 class="fw-bold mb-3" style="color:white;">Gotowy żeby zacząć?</h2>
+        <p class="mb-4" style="color:rgba(255,255,255,0.8);">Dołącz teraz i zacznij rozmawiać ze znajomymi.</p>
+        {% if user.is_authenticated %}
+        <a href="{% url 'chat:index' %}" class="btn btn-light btn-lg px-5 py-3 fw-bold" style="color:#5865f2;">
+            <i class="bi bi-app me-2"></i>Otwórz aplikację
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg px-5 py-3 fw-bold" style="color:#5865f2;">
+            <i class="bi bi-person-plus me-2"></i>Zarejestruj się za darmo
+        </a>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Footer -->
+<footer style="background-color:#1e1f22;border-top:1px solid #404249;padding:30px 0;">
+    <div class="container text-center">
+        <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+            <i class="bi bi-discord fs-5" style="color:#5865f2;"></i>
+            <span style="color:white;font-weight:700;">Discord Clone</span>
+        </div>
+        <p style="color:#949ba4;font-size:13px;" class="mb-0">
+            Projekt zaliczeniowy — Django + Channels + WebRTC
+        </p>
+    </div>
+</footer>
+
+{% endblock %}

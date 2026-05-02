@@ -1,96 +1,128 @@
 {% load chat_tags %}
-<div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31; height: 100vh;">
+<div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31; height: 100vh; height: 100dvh;">
 
-    <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
-        <h6 class="fw-bold mb-0" style="color: white;">Discord Clone</h6>
+    <!-- Nagłówek - zawsze widoczny -->
+    <div class="p-3 border-bottom flex-shrink-0" style="border-color: #1e1f22 !important;">
+        <h6 class="fw-bold mb-0 d-flex align-items-center gap-2" style="color: white;">
+            <i class="bi bi-discord" style="color:#5865f2;"></i>
+            Discord Clone
+        </h6>
     </div>
 
-    <div class="p-2">
-        <a href="{% url 'chat:users_list' %}" class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
+    <!-- Nawigacja - zawsze widoczna -->
+    <div class="p-2 flex-shrink-0">
+        <a href="{% url 'chat:users_list' %}"
+            class="d-flex align-items-center p-2 rounded text-decoration-none"
             style="color: #949ba4;"
             onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
             onmouseout="this.style.backgroundColor='transparent'; this.style.color='#949ba4';">
-            <i class="bi bi-people me-2"></i> Użytkownicy
+            <i class="bi bi-people me-2"></i>
+            <span style="font-size:14px;">Użytkownicy</span>
         </a>
     </div>
 
-    <!-- Kanały tekstowe -->
-    <div class="px-3 py-2 d-flex justify-content-between align-items-center">
-        <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
-            Kanały tekstowe
-        </span>
-        {% if request.user.is_staff or request.user.groups.all|length > 0 %}
-        <button onclick="openCreateChannel('text')"
-            style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 18px;"
-            title="Dodaj kanał tekstowy">+</button>
-        {% endif %}
-    </div>
+    <!-- Środkowa sekcja - tylko ta scrolluje -->
+    <div class="d-flex flex-column flex-grow-1" style="overflow-y: auto; overflow-x: hidden; min-height: 0;">
 
-    <div class="px-2">
-        {% for ch in text_channels %}
-        <a href="{% url 'chat:channel' ch.id %}"
-            class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
-            style="color: {% if current_channel and ch.id == current_channel.id %}white{% else %}#949ba4{% endif %};
-                   background-color: {% if current_channel and ch.id == current_channel.id %}#35373c{% else %}transparent{% endif %};"
-            onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
-            onmouseout="this.style.backgroundColor='{% if current_channel and ch.id == current_channel.id %}#35373c{% else %}transparent{% endif %}';
-                        this.style.color='{% if current_channel and ch.id == current_channel.id %}white{% else %}#949ba4{% endif %}';">
-            <i class="bi bi-hash me-2"></i>{{ ch.name }}
-        </a>
-        {% empty %}
-        <p class="px-2" style="color: #949ba4; font-size: 12px;">Brak kanałów</p>
-        {% endfor %}
-    </div>
-
-    <!-- Kanały głosowe -->
-    <div class="px-3 py-2 mt-2 d-flex justify-content-between align-items-center">
-        <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
-            Kanały głosowe
-        </span>
-        {% if request.user.is_staff or request.user.groups.all|length > 0 %}
-        <button onclick="openCreateChannel('voice')"
-            style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 18px;"
-            title="Dodaj kanał głosowy">+</button>
-        {% endif %}
-    </div>
-    <div class="px-2">
-        {% for ch in voice_channels %}
-        <a href="{% url 'voice:room' ch.id %}"
-            class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
-            style="color: #949ba4;"
-            onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
-            onmouseout="this.style.backgroundColor='transparent'; this.style.color='#949ba4';">
-            <i class="bi bi-volume-up me-2"></i>{{ ch.name }}
-        </a>
-        {% empty %}
-        <p class="px-2" style="color: #949ba4; font-size: 12px;">Brak kanałów głosowych</p>
-        {% endfor %}
-    </div>
-
-    <!-- Profil na dole -->
-    <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
-        <div class="position-relative me-2">
-            {% if request.user.avatar %}
-                <img src="{{ request.user.avatar.url }}" class="rounded-circle" width="32" height="32" style="object-fit: cover;">
-            {% else %}
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                    style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
-                    {{ request.user.username|first|upper }}
-                </div>
+        <!-- Kanały tekstowe -->
+        <div class="px-3 py-2 d-flex justify-content-between align-items-center flex-shrink-0">
+            <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                Tekstowe
+            </span>
+            {% if request.user.is_staff or request.user.groups.all|length > 0 %}
+            <button onclick="openCreateChannel('text')"
+                style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 18px; line-height:1; padding:0;"
+                title="Dodaj kanał tekstowy">+</button>
             {% endif %}
-            <div class="position-absolute" style="bottom:0;right:0;width:10px;height:10px;background:#23a559;border-radius:50%;border:2px solid #232428;"></div>
         </div>
-        <div class="flex-grow-1" style="min-width:0;">
-            <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
-            <div style="color:#949ba4;font-size:11px;">Online</div>
-        </div>
-        <div class="d-flex gap-1">
-            <a href="{% url 'accounts:profile' request.user.username %}" style="color:#949ba4;" title="Profil">
-                <i class="bi bi-gear"></i>
+
+        <div class="px-2">
+            {% for ch in text_channels %}
+            <a href="{% url 'chat:channel' ch.id %}"
+                class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
+                style="color: {% if current_channel and ch.id == current_channel.id %}white{% else %}#949ba4{% endif %};
+                       background-color: {% if current_channel and ch.id == current_channel.id %}#35373c{% else %}transparent{% endif %};
+                       font-size:14px;"
+                onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor='{% if current_channel and ch.id == current_channel.id %}#35373c{% else %}transparent{% endif %}';
+                            this.style.color='{% if current_channel and ch.id == current_channel.id %}white{% else %}#949ba4{% endif %}';">
+                <i class="bi bi-hash me-2" style="font-size:13px; flex-shrink:0;"></i>
+                <span class="text-truncate">{{ ch.name }}</span>
             </a>
-            <a href="{% url 'accounts:logout' %}" style="color:#949ba4;" title="Wyloguj">
-                <i class="bi bi-box-arrow-right"></i>
-            </a>
+            {% empty %}
+            <p class="px-2 mb-0" style="color: #949ba4; font-size: 12px;">Brak kanałów</p>
+            {% endfor %}
         </div>
+
+        <!-- Kanały głosowe -->
+        <div class="px-3 py-2 mt-2 d-flex justify-content-between align-items-center flex-shrink-0">
+            <span style="color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                Głosowe
+            </span>
+            {% if request.user.is_staff or request.user.groups.all|length > 0 %}
+            <button onclick="openCreateChannel('voice')"
+                style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 18px; line-height:1; padding:0;"
+                title="Dodaj kanał głosowy">+</button>
+            {% endif %}
+        </div>
+
+        <div class="px-2">
+            {% for ch in voice_channels %}
+            <a href="{% url 'voice:room' ch.id %}"
+                class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
+                style="color: #949ba4; font-size:14px;"
+                onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#949ba4';">
+                <i class="bi bi-volume-up me-2" style="font-size:13px; flex-shrink:0;"></i>
+                <span class="text-truncate">{{ ch.name }}</span>
+            </a>
+            {% empty %}
+            <p class="px-2 mb-0" style="color: #949ba4; font-size: 12px;">Brak kanałów głosowych</p>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- Profil na dole - zawsze widoczny -->
+    <div class="flex-shrink-0" style="background-color: #232428; border-top: 1px solid #1e1f22;">
+
+        <!-- Avatar + nazwa - klikalny link do profilu -->
+        <a href="{% url 'accounts:profile' request.user.username %}"
+            class="d-flex align-items-center gap-2 p-2 text-decoration-none"
+            style="transition: background 0.15s;"
+            onmouseover="this.style.backgroundColor='#2e3035';"
+            onmouseout="this.style.backgroundColor='transparent';">
+            <div class="position-relative flex-shrink-0">
+                {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}" class="rounded-circle"
+                        width="36" height="36" style="object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                        style="width:36px;height:36px;background:linear-gradient(135deg,#5865f2,#4752c4);
+                            font-size:14px;color:white;font-weight:bold;">
+                        {{ request.user.username|first|upper }}
+                    </div>
+                {% endif %}
+                <div class="position-absolute"
+                    style="bottom:0;right:0;width:11px;height:11px;background:#23a559;
+                        border-radius:50%;border:2px solid #232428;"></div>
+            </div>
+            <div class="flex-grow-1" style="min-width:0;">
+                <div class="text-truncate" style="color:white;font-size:13px;font-weight:600;">
+                    {{ request.user.username }}
+                </div>
+                <div style="color:#23a559;font-size:11px;">● Online</div>
+            </div>
+        </a>
+
+        <!-- Jeden przycisk wylogowania -->
+        <a href="{% url 'accounts:logout' %}"
+            class="d-flex align-items-center justify-content-center gap-2 py-2 text-decoration-none border-top"
+            style="color:#949ba4;transition:all 0.15s;border-color:#1e1f22 !important;"
+            onmouseover="this.style.backgroundColor='rgba(237,66,69,0.1)';this.style.color='#ed4245';"
+            onmouseout="this.style.backgroundColor='transparent';this.style.color='#949ba4';">
+            <i class="bi bi-box-arrow-right" style="font-size:15px;"></i>
+            <span style="font-size:12px;">Wyloguj się</span>
+        </a>
     </div>
 </div>
