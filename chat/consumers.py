@@ -144,6 +144,21 @@ class DMConsumer(AsyncWebsocketConsumer):
         file_data = data.get('file', None)
         file_name = data.get('file_name', '')
 
+        # Obsługa reakcji
+        if message_type == 'reaction':
+            emoji = data.get('emoji', '')
+            message_id = data.get('message_id')
+            reactions = await self.toggle_reaction(message_id, emoji)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'reaction_update',
+                    'message_id': message_id,
+                    'reactions': reactions,
+                }
+            )
+            return
+
         message = await self.save_dm(content, message_type, file_data, file_name)
 
         await self.channel_layer.group_send(
@@ -155,8 +170,19 @@ class DMConsumer(AsyncWebsocketConsumer):
                 'message_type': message_type,
                 'file_url': message.file.url if message.file else None,
                 'author': self.user.username,
+                'author_avatar': self.user.get_avatar_url(),
                 'author_url': f'/accounts/profile/{self.user.username}/',
                 'created_at': message.created_at.strftime('%d.%m.%Y %H:%M'),
+            }
+        )
+        # Powiadomienie dla odbiorcy DM
+        await self.channel_layer.group_send(
+            f'notifications_{self.other_username}',
+            {
+                'type': 'notify',
+                'author': self.user.username,
+                'message': content[:100],
+                'dm_username': self.user.username,
             }
         )
 
@@ -178,3 +204,48 @@ class DMConsumer(AsyncWebsocketConsumer):
             message.file.save(file_name, ContentFile(decoded), save=False)
         message.save()
         return message
+    
+    async def reaction_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'reaction_update',
+            'message_id': event['message_id'],
+            'reactions': event['reactions'],
+        }))
+
+    @database_sync_to_async
+    def toggle_reaction(self, message_id, emoji):
+        from .models import Reaction
+        message = Message.objects.get(id=message_id)
+        reaction, created = Reaction.objects.get_or_create(
+            message=message,
+            user=self.user,
+            emoji=emoji
+        )
+        if not created:
+            reaction.delete()
+        reactions = {}
+        for r in Reaction.objects.filter(message=message):
+            reactions[r.emoji] = reactions.get(r.emoji, 0) + 1
+        return reactions
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope['user']
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+        
+        self.personal_group = f'notifications_{self.user.username}'
+        await self.channel_layer.group_add(self.personal_group, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.personal_group, self.channel_name)
+
+    async def notify(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'notification',
+            'author': event['author'],
+            'message': event['message'],
+            'dm_username': event['dm_username'],
+        }))

@@ -56,7 +56,13 @@ def logout_view(request):
 @login_required
 def profile_view(request, username):
     profile_user = User.objects.get(username=username)
-    return render(request, 'accounts/profile.html', {'profile_user': profile_user})
+    is_moderator_or_admin = request.user.is_staff or request.user.groups.filter(
+        name__in=['Administrator', 'Moderator']
+    ).exists()
+    return render(request, 'accounts/profile.html', {
+        'profile_user': profile_user,
+        'is_moderator_or_admin': is_moderator_or_admin,
+    })
 
 @login_required
 def edit_profile_view(request):

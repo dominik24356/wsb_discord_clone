@@ -121,6 +121,35 @@
                         {% elif msg.message_type == 'audio' %}
                             <audio controls class="mt-1"><source src="{{ msg.file.url }}"></audio>
                         {% endif %}
+                        <!-- Reakcje -->
+                        <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative" id="reactions-{{ msg.id }}">
+                            {% regroup msg.reactions.all by emoji as reaction_groups %}
+                            {% for group in reaction_groups %}
+                            <button class="reaction-btn btn btn-sm px-2 py-0 rounded-pill"
+                                data-message-id="{{ msg.id }}"
+                                data-emoji="{{ group.grouper }}"
+                                style="background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;">
+                                {{ group.grouper }} {{ group.list|length }}
+                            </button>
+                            {% endfor %}
+                            <button class="btn btn-sm px-2 py-0 add-reaction-btn"
+                                data-message-id="{{ msg.id }}"
+                                style="background:none;color:#949ba4;font-size:16px;border:none;"
+                                title="Dodaj reakcję">
+                                <i class="bi bi-emoji-smile"></i>
+                            </button>
+                            <div class="emoji-picker" id="picker-{{ msg.id }}"
+                                style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;
+                                    border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
+                                    flex-wrap:wrap;max-width:200px;">
+                                {% for emoji in "😀😂😍🔥👍❤️😢😮🎉👀" %}
+                                <button class="btn p-1 emoji-choice"
+                                    data-message-id="{{ msg.id }}"
+                                    data-emoji="{{ emoji }}"
+                                    style="font-size:20px;background:none;border:none;">{{ emoji }}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -145,6 +174,16 @@
                         <i class="bi bi-plus-circle"></i>
                     </label>
                     <input type="file" id="file-input" accept="image/*,audio/*" style="display:none;">
+
+                    <!-- Przycisk nagrywania głosówki -->
+                    <button id="record-btn" type="button"
+                        style="background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer;"
+                        title="Nagraj głosówkę">
+                        <i class="bi bi-mic" id="record-icon"></i>
+                    </button>
+                    <span id="record-status" style="color:#ed4245; font-size:12px; display:none;">
+                        <i class="bi bi-record-fill"></i> Nagrywanie...
+                    </span>
                     <input type="text" id="message-input" class="flex-grow-1"
                         style="background: none; border: none; color: white; outline: none; font-size: 15px;"
                         placeholder="Napisz wiadomość do {{ other_user.username }}...">
@@ -173,7 +212,11 @@
 
     socket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        appendMessage(data);
+        if (data.type === 'chat_message') {
+            appendMessage(data);
+        } else if (data.type === 'reaction_update') {
+            updateReactions(data.message_id, data.reactions);
+        }
     };
 
     document.getElementById('dm-form').addEventListener('submit', function(e) {
@@ -224,7 +267,20 @@
         const container = document.getElementById('messages-container');
         const div = document.createElement('div');
         div.className = 'd-flex mb-3';
+        div.id = `msg-${data.message_id}`;
 
+        // Avatar
+        let avatarHtml = '';
+        if (data.author_avatar && !data.author_avatar.includes('default_avatar')) {
+            avatarHtml = `<img src="${data.author_avatar}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">`;
+        } else {
+            avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
+                ${data.author[0].toUpperCase()}
+            </div>`;
+        }
+
+        // Treść
         let contentHtml = '';
         if (data.message_type === 'text') {
             contentHtml = `<p class="mb-0" style="color:#dcddde;">${escapeHtml(data.content)}</p>`;
@@ -234,19 +290,34 @@
             contentHtml = `<audio controls class="mt-1"><source src="${data.file_url}"></audio>`;
         }
 
-        div.innerHTML = `
-            <div class="me-3 flex-shrink-0">
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                    style="width:40px;height:40px;background-color:#5865f2;color:white;font-weight:bold;">
-                    ${data.author[0].toUpperCase()}
+        // Reakcje
+        const reactionsHtml = `
+            <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative" id="reactions-${data.message_id}">
+                <button class="btn btn-sm px-2 py-0 add-reaction-btn"
+                    data-message-id="${data.message_id}"
+                    style="background:none;color:#949ba4;font-size:16px;border:none;">
+                    <i class="bi bi-emoji-smile"></i>
+                </button>
+                <div class="emoji-picker" id="picker-${data.message_id}"
+                    style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;
+                        border-radius:8px;padding:8px;z-index:100;border:1px solid #404249;
+                        flex-wrap:wrap;max-width:200px;">
+                    ${['😀','😂','😍','🔥','👍','❤️','😢','😮','🎉','👀'].map(e => 
+                        `<button class="btn p-1 emoji-choice" data-message-id="${data.message_id}" 
+                            data-emoji="${e}" style="font-size:20px;background:none;border:none;">${e}</button>`
+                    ).join('')}
                 </div>
-            </div>
+            </div>`;
+
+        div.innerHTML = `
+            <div class="me-3 flex-shrink-0">${avatarHtml}</div>
             <div class="flex-grow-1">
                 <div class="d-flex align-items-baseline gap-2">
                     <span class="fw-bold" style="color:white;">${escapeHtml(data.author)}</span>
                     <span style="color:#949ba4;font-size:11px;">${data.created_at}</span>
                 </div>
                 ${contentHtml}
+                ${reactionsHtml}
             </div>`;
 
         container.appendChild(div);
@@ -257,6 +328,121 @@
         const div = document.createElement('div');
         div.appendChild(document.createTextNode(text));
         return div.innerHTML;
+    }
+
+    // Nagrywanie głosówek
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingStream = null;
+    let isRecording = false;
+
+    document.getElementById('record-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (!isRecording) {
+            isRecording = true;
+            startRecording(e);
+        } else {
+            isRecording = false;
+            stopRecording(e);
+        }
+    });
+
+    async function startRecording(e) {
+        try {
+            recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(recordingStream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = function(e) {
+                audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = function() {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                sendAudioMessage(audioBlob);
+                recordingStream.getTracks().forEach(t => t.stop());
+            };
+
+            mediaRecorder.start();
+            document.getElementById('record-icon').className = 'bi bi-mic-fill';
+            document.getElementById('record-btn').style.color = '#ed4245';
+            document.getElementById('record-status').style.display = 'inline';
+
+        } catch(err) {
+            console.error('Brak dostępu do mikrofonu:', err);
+        }
+    }
+
+    function stopRecording(e) {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        document.getElementById('record-icon').className = 'bi bi-mic';
+        document.getElementById('record-btn').style.color = '#949ba4';
+        document.getElementById('record-status').style.display = 'none';
+    }
+
+    function sendAudioMessage(audioBlob) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            socket.send(JSON.stringify({
+                type: 'audio',
+                content: '',
+                file: ev.target.result,
+                file_name: `voice_${Date.now()}.webm`
+            }));
+        };
+        reader.readAsDataURL(audioBlob);
+    }
+
+    // Reakcje emoji
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.add-reaction-btn')) {
+            const btn = e.target.closest('.add-reaction-btn');
+            const messageId = btn.dataset.messageId;
+            const picker = document.getElementById(`picker-${messageId}`);
+            document.querySelectorAll('.emoji-picker').forEach(p => {
+                if (p !== picker) p.style.display = 'none';
+            });
+            picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
+            return;
+        }
+        if (e.target.closest('.emoji-choice')) {
+            const btn = e.target.closest('.emoji-choice');
+            sendReaction(btn.dataset.messageId, btn.dataset.emoji);
+            document.getElementById(`picker-${btn.dataset.messageId}`).style.display = 'none';
+            return;
+        }
+        if (e.target.closest('.reaction-btn')) {
+            const btn = e.target.closest('.reaction-btn');
+            sendReaction(btn.dataset.messageId, btn.dataset.emoji);
+            return;
+        }
+        document.querySelectorAll('.emoji-picker').forEach(p => p.style.display = 'none');
+    });
+
+    function sendReaction(messageId, emoji) {
+        socket.send(JSON.stringify({
+            type: 'reaction',
+            message_id: parseInt(messageId),
+            emoji: emoji
+        }));
+    }
+
+    function updateReactions(messageId, reactions) {
+        const container = document.getElementById(`reactions-${messageId}`);
+        if (!container) return;
+        container.querySelectorAll('.reaction-btn').forEach(b => b.remove());
+        const addBtn = container.querySelector('.add-reaction-btn');
+        Object.entries(reactions).forEach(([emoji, count]) => {
+            const btn = document.createElement('button');
+            btn.className = 'reaction-btn btn btn-sm px-2 py-0 rounded-pill';
+            btn.dataset.messageId = messageId;
+            btn.dataset.emoji = emoji;
+            btn.style.cssText = 'background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;';
+            btn.textContent = `${emoji} ${count}`;
+            container.insertBefore(btn, addBtn);
+        });
     }
 </script>
 {% endblock %}

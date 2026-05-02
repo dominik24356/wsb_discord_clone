@@ -306,6 +306,10 @@
         const data = JSON.parse(e.data);
         if (data.type === 'chat_message') {
             appendMessage(data);
+            // Powiadomienie jeśli wiadomość od kogoś innego
+            if (data.author !== '{{ request.user.username }}') {
+                showNotification(data.author, data.content, '{{ channel.name }}');
+            }
         } else if (data.type === 'reaction_update') {
             updateReactions(data.message_id, data.reactions);
         }
@@ -556,6 +560,39 @@
             btn.textContent = `${emoji} ${count}`;
             container.insertBefore(btn, addBtn);
         });
+    }
+
+    // Powiadomienia dla innych kanałów
+    const currentChannelId = {{ channel.id }};
+
+    async function requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            await Notification.requestPermission();
+        }
+    }
+    requestNotificationPermission();
+
+    function showNotification(author, content, channelName) {
+        // Toast w aplikacji
+        const toast = document.getElementById('notification-toast');
+        const text = document.getElementById('notification-text');
+        if (toast && text) {
+            text.textContent = `${author} na #${channelName}: ${content.substring(0, 50)}`;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 4000);
+        }
+
+        // Powiadomienie systemowe przeglądarki
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`#${channelName}`, {
+                body: `${author}: ${content.substring(0, 100)}`,
+                icon: '/static/images/default_avatar.png',
+            });
+        }
+
+        // Badge na tytule strony
+        document.title = `(!) #${channelName}`;
+        setTimeout(() => document.title = `#{{ channel.name }}`, 5000);
     }
 </script>
 {% endblock %}
