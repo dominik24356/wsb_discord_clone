@@ -115,3 +115,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/chat/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://wsb-discord-clone.onrender.com',
+]
