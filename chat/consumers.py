@@ -85,6 +85,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'reactions': event['reactions'],
         }))
 
+    async def message_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message_deleted',
+            'message_id': event['message_id'],
+    }))
+
     @database_sync_to_async
     def toggle_reaction(self, message_id, emoji):
         from .models import Reaction

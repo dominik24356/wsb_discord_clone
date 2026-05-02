@@ -1,12 +1,39 @@
 {% extends 'base.html' %}
 {% block title %}404 - Nie znaleziono{% endblock %}
 {% block content %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center">
+<div class="min-vh-100 d-flex align-items-center justify-content-center px-3"
+    style="background: linear-gradient(135deg, #1e1f22 0%, #2b2d31 100%);">
     <div class="text-center">
-        <h1 style="font-size: 120px; color: var(--dc-accent); font-weight: bold;">404</h1>
-        <h2 style="color: white;">Strona nie istnieje</h2>
-        <p style="color: var(--dc-muted);">Wygląda na to, że ta strona zaginęła w przestrzeni.</p>
-        <a href="{% url 'chat:index' %}" class="btn btn-accent mt-3">Wróć do chatu</a>
+        <div class="position-relative d-inline-block mb-4">
+            <h1 class="fw-bold mb-0"
+                style="font-size: clamp(80px, 20vw, 140px);
+                       background: linear-gradient(135deg, #5865f2, #9b59b6);
+                       -webkit-background-clip: text;
+                       -webkit-text-fill-color: transparent;
+                       background-clip: text;
+                       line-height: 1;">404</h1>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                        width:120%;height:120%;background:radial-gradient(circle,rgba(88,101,242,0.15),transparent 70%);
+                        pointer-events:none;border-radius:50%;"></div>
+        </div>
+        <h2 class="fw-bold mb-2" style="color:white;font-size:clamp(18px,4vw,28px);">
+            Strona nie istnieje
+        </h2>
+        <p class="mb-4 mx-auto" style="color:#949ba4;max-width:400px;font-size:15px;">
+            Wygląda na to, że ta strona zaginęła w przestrzeni. Może wróć tam, gdzie było bezpiecznie?
+        </p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'chat:index' %}" class="btn btn-accent px-4 py-2">
+                <i class="bi bi-hash me-2"></i>Wróć do chatu
+            </a>
+            <a href="/" class="btn px-4 py-2"
+                style="background:#2b2d31;color:white;border:1px solid #404249;">
+                <i class="bi bi-house me-2"></i>Strona główna
+            </a>
+        </div>
+        <p class="mt-5" style="color:#404249;font-size:12px;">
+            Błąd 404 — zasób nie został znaleziony
+        </p>
     </div>
 </div>
 {% endblock %}

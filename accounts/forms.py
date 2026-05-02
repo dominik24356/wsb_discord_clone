@@ -31,8 +31,10 @@ class LoginForm(AuthenticationForm):
 class EditProfileForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ('avatar', 'bio')
+        fields = ('first_name', 'last_name', 'avatar', 'bio')
         labels = {
+            'first_name': 'Imię',
+            'last_name': 'Nazwisko',
             'avatar': 'Zdjęcie profilowe',
             'bio': 'Opis',
         }

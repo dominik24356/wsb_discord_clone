@@ -96,7 +96,6 @@ def create_channel(request):
 def delete_message(request, message_id):
     message = get_object_or_404(Message, id=message_id)
     
-    # Autor może usunąć swoją wiadomość, moderator/admin każdą
     can_delete = (
         message.author == request.user or
         request.user.is_staff or
@@ -106,6 +105,20 @@ def delete_message(request, message_id):
     if can_delete and request.method == 'POST':
         message.is_deleted = True
         message.save()
+        
+        # Wysyłamy przez channel layer do wszystkich w kanale
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        if message.channel:
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{message.channel.id}',
+                {
+                    'type': 'message_deleted',
+                    'message_id': message.id,
+                }
+            )
     
     if message.channel:
         return redirect('chat:channel', channel_id=message.channel.id)
