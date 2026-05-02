@@ -91,7 +91,7 @@
                 <div style="color:#949ba4;font-size:11px;">Online</div>
             </div>
             <div class="d-flex gap-1">
-                <a href="{% url 'accounts:edit_profile' %}" style="color:#949ba4;" title="Edytuj profil">
+                <a href="{% url 'accounts:profile' request.user.username %}" style="color:#949ba4;" title="Profil">
                     <i class="bi bi-gear"></i>
                 </a>
                 <a href="{% url 'accounts:logout' %}" style="color:#949ba4;" title="Wyloguj">

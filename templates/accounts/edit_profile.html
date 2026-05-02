@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Edytuj profil{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: 100vh; overflow: hidden;">
+
+    <div class="d-flex flex-column" style="width: 240px; min-width: 240px; background-color: #2b2d31;">
+        <div class="p-3 border-bottom" style="border-color: #1e1f22 !important;">
+            <a href="{% url 'accounts:profile' request.user.username %}" style="color: #949ba4; text-decoration: none;">
+                <i class="bi bi-arrow-left me-2"></i>Wróć do profilu
+            </a>
+        </div>
+        <div class="mt-auto p-2 d-flex align-items-center" style="background-color: #232428;">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                style="width:32px;height:32px;background-color:#5865f2;font-size:14px;color:white;font-weight:bold;">
+                {{ request.user.username|first|upper }}
+            </div>
+            <div style="color:white;font-size:13px;font-weight:600;">{{ request.user.username }}</div>
+        </div>
+    </div>
+
+    <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="background-color: #313338;">
+        <div class="p-4 rounded" style="background-color:#2b2d31; width:500px;">
+            <h5 style="color:white;" class="mb-4">
+                <i class="bi bi-person-gear me-2" style="color:#5865f2;"></i>Edytuj profil
+            </h5>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Podgląd avatara -->
+                <div class="text-center mb-4">
+                    {% if request.user.avatar %}
+                        <img src="{{ request.user.avatar.url }}" class="rounded-circle mb-2"
+                            style="width:80px;height:80px;object-fit:cover;" id="avatar-preview">
+                    {% else %}
+                        <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
+                            style="width:80px;height:80px;background-color:#5865f2;font-size:32px;color:white;font-weight:bold;"
+                            id="avatar-preview-placeholder">
+                            {{ request.user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    <div>
+                        <label for="id_avatar" class="btn btn-sm" style="background-color:#4752c4;color:white;cursor:pointer;">
+                            <i class="bi bi-camera me-1"></i>Zmień zdjęcie
+                        </label>
+                        {{ form.avatar }}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label style="color:#949ba4;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+                        O mnie
+                    </label>
+                    <textarea name="bio" class="form-control mt-2"
+                        style="background:#1e1f22;border:none;color:white;resize:none;"
+                        rows="4" maxlength="300"
+                        placeholder="Napisz coś o sobie...">{{ request.user.bio }}</textarea>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'accounts:profile' request.user.username %}"
+                        class="btn" style="color:white;background:none;">Anuluj</a>
+                    <button type="submit" class="btn btn-accent">
+                        <i class="bi bi-check me-1"></i>Zapisz zmiany
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Podgląd avatara przed zapisaniem
+document.getElementById('id_avatar').addEventListener('change', function() {
+    if (this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('avatar-preview');
+            const placeholder = document.getElementById('avatar-preview-placeholder');
+            if (preview) {
+                preview.src = e.target.result;
+            } else if (placeholder) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'rounded-circle mb-2';
+                img.style.cssText = 'width:80px;height:80px;object-fit:cover;';
+                img.id = 'avatar-preview';
+                placeholder.replaceWith(img);
+            }
+        };
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+</script>
+{% endblock %}

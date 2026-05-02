@@ -54,8 +54,8 @@
             {% endif %}
         </div>
         <div class="px-2">
-            {% url 'voice:room' ch.id %}
-            <a href="{% url 'chat:channel' ch.id %}"
+            {% for ch in voice_channels %}
+            <a href="{% url 'voice:room' ch.id %}"
                 class="d-flex align-items-center p-2 rounded text-decoration-none mb-1"
                 style="color: {% if ch.id == channel.id %}white{% else %}#949ba4{% endif %};"
                 onmouseover="this.style.backgroundColor='#35373c'; this.style.color='white';"
@@ -83,7 +83,7 @@
                 <div style="color:#949ba4;font-size:11px;">Online</div>
             </div>
             <div class="d-flex gap-1">
-                <a href="{% url 'accounts:edit_profile' %}" style="color:#949ba4;"><i class="bi bi-gear"></i></a>
+                <a href="{% url 'accounts:profile' request.user.username %}" style="color:#949ba4;"><i class="bi bi-gear"></i></a>
                 <a href="{% url 'accounts:logout' %}" style="color:#949ba4;"><i class="bi bi-box-arrow-right"></i></a>
             </div>
         </div>
@@ -139,14 +139,20 @@
                             {% endif %}
                         </div>
                         <!-- Treść wiadomości -->
-                        {% if msg.message_type == 'text' %}
-                            <p class="mb-0" style="color: #dcddde;">{{ msg.content }}</p>
-                        {% elif msg.message_type == 'image' %}
-                            <img src="{{ msg.file.url }}" class="mt-1 rounded" style="max-width: 400px; max-height: 300px;">
-                        {% elif msg.message_type == 'audio' %}
-                            <audio controls class="mt-1">
-                                <source src="{{ msg.file.url }}">
-                            </audio>
+                        {% if msg.author.id in blocked_ids %}
+                            <p class="mb-0 fst-italic" style="color: #747f8d;">
+                                <i class="bi bi-slash-circle me-1"></i>Wiadomość ukryta — zablokowany użytkownik
+                            </p>
+                        {% else %}
+                            {% if msg.message_type == 'text' %}
+                                <p class="mb-0" style="color: #dcddde;">{{ msg.content }}</p>
+                            {% elif msg.message_type == 'image' %}
+                                <img src="{{ msg.file.url }}" class="mt-1 rounded" style="max-width: 400px; max-height: 300px;">
+                            {% elif msg.message_type == 'audio' %}
+                                <audio controls class="mt-1">
+                                    <source src="{{ msg.file.url }}">
+                                </audio>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

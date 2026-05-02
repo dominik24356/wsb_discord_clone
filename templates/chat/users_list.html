@@ -39,7 +39,7 @@
         <div class="row g-3">
             {% for user in users %}
             <div class="col-md-4 col-sm-6">
-                <div class="p-3 rounded d-flex align-items-center gap-3" style="background-color: #2b2d31;">
+                <div class="p-3 rounded d-flex align-items-center gap-3" style="background-color: #2b2d31; {% if user in request.user.blocked_users.all %}opacity:0.5; filter:grayscale(50%);{% endif %}">
                     <div class="position-relative">
                         {% if user.avatar %}
                             <img src="{{ user.avatar.url }}" class="rounded-circle" width="48" height="48" style="object-fit:cover;">
@@ -54,7 +54,12 @@
                             border-radius:50%;border:2px solid #2b2d31;"></div>
                     </div>
                     <div class="flex-grow-1">
-                        <div style="color:white;font-weight:600;">{{ user.username }}</div>
+                        <a href="{% url 'accounts:profile' user.username %}" class="text-decoration-none" style="color:white;font-weight:600;">
+                            {{ user.username }}
+                        </a>
+                        {% if user in request.user.blocked_users.all %}
+                        <span class="badge ms-1" style="background-color:#ed4245;font-size:10px;">Zablokowany</span>
+                        {% endif %}
                         <div style="color:#949ba4;font-size:12px;">
                             {% if user.is_online %}🟢 Online{% else %}⚫ Offline{% endif %}
                         </div>
@@ -62,9 +67,32 @@
                         <div style="color:#949ba4;font-size:11px;margin-top:2px;">{{ user.bio|truncatechars:40 }}</div>
                         {% endif %}
                     </div>
-                    <a href="{% url 'chat:dm' user.username %}" class="btn btn-sm btn-accent" title="Wyślij wiadomość">
-                        <i class="bi bi-chat"></i>
-                    </a>
+                    {% if user in request.user.blocked_users.all %}
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'chat:dm' user.username %}" class="btn btn-sm" 
+                                style="background-color:#4a4a4a;color:#747f8d;" title="Zablokowany">
+                                <i class="bi bi-chat"></i>
+                            </a>
+                            <form method="post" action="{% url 'accounts:unblock_user' user.username %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm" style="background-color:#747f8d;color:white;" title="Odblokuj">
+                                    <i class="bi bi-slash-circle"></i>
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'chat:dm' user.username %}" class="btn btn-sm btn-accent" title="Wyślij wiadomość">
+                                <i class="bi bi-chat"></i>
+                            </a>
+                            <form method="post" action="{% url 'accounts:block_user' user.username %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm" style="background-color:#ed4245;color:white;" title="Zablokuj">
+                                    <i class="bi bi-slash-circle"></i>
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
             {% empty %}

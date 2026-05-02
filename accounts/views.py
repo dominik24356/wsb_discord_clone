@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
@@ -70,3 +70,17 @@ def edit_profile_view(request):
         form = EditProfileForm(instance=request.user)
     
     return render(request, 'accounts/edit_profile.html', {'form': form})
+
+@login_required
+def block_user(request, username):
+    user_to_block = get_object_or_404(User, username=username)
+    if request.method == 'POST':
+        request.user.blocked_users.add(user_to_block)
+    return redirect(request.META.get('HTTP_REFERER', 'chat:users_list'))
+
+@login_required
+def unblock_user(request, username):
+    user_to_unblock = get_object_or_404(User, username=username)
+    if request.method == 'POST':
+        request.user.blocked_users.remove(user_to_unblock)
+    return redirect(request.META.get('HTTP_REFERER', 'chat:users_list'))

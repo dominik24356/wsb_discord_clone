@@ -96,6 +96,32 @@ async function initMedia() {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         document.getElementById('connection-status').textContent = 'Połączony z kanałem głosowym';
         document.getElementById('connection-status').style.color = '#23a559';
+
+        // Detekcja własnego głosu
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaStreamSource(localStream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        function detectMyVoice() {
+            analyser.getByteFrequencyData(dataArray);
+            const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            const myAvatar = document.querySelector('#participant-me .rounded-circle');
+            if (myAvatar) {
+                if (volume > 10 && !isMuted) {
+                    myAvatar.style.boxShadow = '0 0 0 3px #23a559, 0 0 15px #23a559';
+                    myAvatar.style.backgroundColor = '#23a559';
+                } else {
+                    myAvatar.style.boxShadow = 'none';
+                    myAvatar.style.backgroundColor = '#5865f2';
+                }
+            }
+            requestAnimationFrame(detectMyVoice);
+        }
+        detectMyVoice();
+
     } catch (err) {
         document.getElementById('connection-status').textContent = 'Brak dostępu do mikrofonu!';
         document.getElementById('connection-status').style.color = '#ed4245';
@@ -155,6 +181,32 @@ function addRemoteAudio(channelName, username, stream) {
         document.getElementById('remote-audio-container').appendChild(audio);
     }
     audio.srcObject = stream;
+
+    // Detekcja głosu - świecąca obramówka gdy ktoś mówi
+    const audioCtx = new AudioContext();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    function detectVoice() {
+        analyser.getByteFrequencyData(dataArray);
+        const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const avatar = document.getElementById(`avatar-${channelName}`);
+        if (avatar) {
+            if (volume > 10) {
+                avatar.style.boxShadow = `0 0 0 3px #23a559, 0 0 15px #23a559`;
+                avatar.style.backgroundColor = '#23a559';
+            } else {
+                avatar.style.boxShadow = 'none';
+                avatar.style.backgroundColor = '#5865f2';
+            }
+        }
+        requestAnimationFrame(detectVoice);
+    }
+    detectVoice();
 }
 
 function addParticipant(channelName, username) {
@@ -164,11 +216,11 @@ function addParticipant(channelName, username) {
     const div = document.createElement('div');
     div.id = `participant-${channelName}`;
     div.className = 'd-flex flex-column align-items-center p-3 rounded';
-    div.style.backgroundColor = '#2b2d31';
-    div.style.minWidth = '100px';
+    div.style.cssText = 'background-color:#2b2d31; min-width:100px; transition: all 0.2s;';
     div.innerHTML = `
-        <div class="rounded-circle d-flex align-items-center justify-content-center mb-2"
-            style="width:64px;height:64px;background-color:#5865f2;font-size:24px;color:white;font-weight:bold;">
+        <div id="avatar-${channelName}" class="rounded-circle d-flex align-items-center justify-content-center mb-2"
+            style="width:64px;height:64px;background-color:#5865f2;font-size:24px;color:white;font-weight:bold;
+                   transition: box-shadow 0.1s;">
             ${username[0].toUpperCase()}
         </div>
         <span style="color:white;font-size:13px;">${username}</span>

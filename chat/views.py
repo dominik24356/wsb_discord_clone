@@ -21,6 +21,8 @@ def index(request):
 def channel_view(request, channel_id):
     channel = get_object_or_404(Channel, id=channel_id)
     
+    blocked_ids = list(request.user.blocked_users.values_list('id', flat=True))
+
     chat_messages = Message.objects.filter(
         channel=channel,
         is_deleted=False
@@ -39,18 +41,26 @@ def channel_view(request, channel_id):
         'text_channels': text_channels,
         'voice_channels': voice_channels,
         'is_moderator': is_moderator,
+        'blocked_ids': blocked_ids,
     })
 
 @login_required
 def dm_view(request, username):
     other_user = get_object_or_404(User, username=username)
     
+    # Sprawdzamy czy któryś z użytkowników zablokował drugiego
+    if other_user in request.user.blocked_users.all():
+        return render(request, 'chat/dm_blocked.html', {'other_user': other_user, 'reason': 'Zablokowałeś tego użytkownika.'})
+    
+    if request.user in other_user.blocked_users.all():
+        return render(request, 'chat/dm_blocked.html', {'other_user': other_user, 'reason': 'Ten użytkownik Cię zablokował.'})
+    
     chat_messages = Message.objects.filter(
         Q(author=request.user, dm_recipient=other_user) |
         Q(author=other_user, dm_recipient=request.user),
         is_deleted=False
     ).order_by('created_at')[:50]
-
+    
     users = User.objects.exclude(id=request.user.id)
     
     return render(request, 'chat/dm.html', {
