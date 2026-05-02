@@ -118,3 +118,36 @@ def users_list(request):
     if query:
         users = users.filter(username__icontains=query)
     return render(request, 'chat/users_list.html', {'users': users, 'query': query})
+
+@login_required
+def toggle_reaction(request, message_id):
+    if request.method == 'POST':
+        import json
+        data = json.loads(request.body)
+        emoji = data.get('emoji', '')
+        
+        message = get_object_or_404(Message, id=message_id)
+        from .models import Reaction
+        
+        # Jeśli reakcja istnieje — usuń, jeśli nie — dodaj
+        reaction, created = Reaction.objects.get_or_create(
+            message=message,
+            user=request.user,
+            emoji=emoji
+        )
+        if not created:
+            reaction.delete()
+            action = 'removed'
+        else:
+            action = 'added'
+        
+        # Zliczamy wszystkie reakcje dla tej wiadomości
+        reactions = {}
+        for r in Reaction.objects.filter(message=message):
+            reactions[r.emoji] = reactions.get(r.emoji, 0) + 1
+        
+        from django.http import JsonResponse
+        return JsonResponse({'action': action, 'reactions': reactions})
+    
+    from django.http import JsonResponse
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

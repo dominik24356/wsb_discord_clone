@@ -101,7 +101,7 @@
             {% endif %}
         </div>
 
-        <!-- Wiadomości -->
+<!-- Wiadomości -->
         <div id="messages-container" class="flex-grow-1 p-4" style="overflow-y: auto;">
             {% if chat_messages %}
                 {% for msg in chat_messages %}
@@ -127,7 +127,6 @@
                             <span style="color: #949ba4; font-size: 11px;">
                                 {{ msg.created_at|date:"d.m.Y H:i" }}
                             </span>
-                            <!-- Usuń wiadomość (autor lub moderator) -->
                             {% if msg.author == request.user or is_moderator %}
                             <form method="post" action="{% url 'chat:delete_message' msg.id %}" class="ms-auto">
                                 {% csrf_token %}
@@ -153,6 +152,36 @@
                                     <source src="{{ msg.file.url }}">
                                 </audio>
                             {% endif %}
+                        {% endif %}
+                        <!-- Reakcje -->
+                        {% if not msg.author.id in blocked_ids %}
+                        <div class="d-flex align-items-center gap-1 mt-1 flex-wrap reactions-container position-relative" id="reactions-{{ msg.id }}">
+                            {% regroup msg.reactions.all by emoji as reaction_groups %}
+                            {% for group in reaction_groups %}
+                            <button class="reaction-btn btn btn-sm px-2 py-0 rounded-pill"
+                                data-message-id="{{ msg.id }}"
+                                data-emoji="{{ group.grouper }}"
+                                style="background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;">
+                                {{ group.grouper }} {{ group.list|length }}
+                            </button>
+                            {% endfor %}
+                            <button class="btn btn-sm px-2 py-0 add-reaction-btn"
+                                data-message-id="{{ msg.id }}"
+                                style="background:none;color:#949ba4;font-size:16px;border:none;"
+                                title="Dodaj reakcję">
+                                <i class="bi bi-emoji-smile"></i>
+                            </button>
+                            <div class="emoji-picker" id="picker-{{ msg.id }}"
+                                style="display:none;position:absolute;bottom:30px;left:0;background:#2b2d31;border-radius:8px;
+                                       padding:8px;z-index:100;border:1px solid #404249;flex-wrap:wrap;max-width:200px;">
+                                {% for emoji in "😀😂😍🔥👍❤️😢😮🎉👀" %}
+                                <button class="btn p-1 emoji-choice"
+                                    data-message-id="{{ msg.id }}"
+                                    data-emoji="{{ emoji }}"
+                                    style="font-size:20px;background:none;border:none;">{{ emoji }}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -277,6 +306,8 @@
         const data = JSON.parse(e.data);
         if (data.type === 'chat_message') {
             appendMessage(data);
+        } else if (data.type === 'reaction_update') {
+            updateReactions(data.message_id, data.reactions);
         }
     };
 
@@ -458,6 +489,73 @@
             }));
         };
         reader.readAsDataURL(audioBlob);
+    }
+
+
+    // Reakcje emoji
+    document.addEventListener('click', function(e) {
+        // Otwieranie/zamykanie pickera
+        if (e.target.closest('.add-reaction-btn')) {
+            const btn = e.target.closest('.add-reaction-btn');
+            const messageId = btn.dataset.messageId;
+            const picker = document.getElementById(`picker-${messageId}`);
+            // Zamknij wszystkie inne pickery
+            document.querySelectorAll('.emoji-picker').forEach(p => {
+                if (p !== picker) p.style.display = 'none';
+            });
+            picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
+            return;
+        }
+
+        // Wybór emoji z pickera
+        if (e.target.closest('.emoji-choice')) {
+            const btn = e.target.closest('.emoji-choice');
+            const messageId = btn.dataset.messageId;
+            const emoji = btn.dataset.emoji;
+            sendReaction(messageId, emoji);
+            document.getElementById(`picker-${messageId}`).style.display = 'none';
+            return;
+        }
+
+        // Kliknięcie istniejącej reakcji (toggle)
+        if (e.target.closest('.reaction-btn')) {
+            const btn = e.target.closest('.reaction-btn');
+            const messageId = btn.dataset.messageId;
+            const emoji = btn.dataset.emoji;
+            sendReaction(messageId, emoji);
+            return;
+        }
+
+        // Kliknięcie poza pickerem — zamknij
+        document.querySelectorAll('.emoji-picker').forEach(p => p.style.display = 'none');
+    });
+
+    function sendReaction(messageId, emoji) {
+        socket.send(JSON.stringify({
+            type: 'reaction',
+            message_id: messageId,
+            emoji: emoji
+        }));
+    }
+
+    function updateReactions(messageId, reactions) {
+        const container = document.getElementById(`reactions-${messageId}`);
+        if (!container) return;
+
+        // Usuwamy stare przyciski reakcji
+        container.querySelectorAll('.reaction-btn').forEach(b => b.remove());
+
+        // Dodajemy zaktualizowane
+        const addBtn = container.querySelector('.add-reaction-btn');
+        Object.entries(reactions).forEach(([emoji, count]) => {
+            const btn = document.createElement('button');
+            btn.className = 'reaction-btn btn btn-sm px-2 py-0 rounded-pill';
+            btn.dataset.messageId = messageId;
+            btn.dataset.emoji = emoji;
+            btn.style.cssText = 'background-color:#2b2d31;color:white;font-size:13px;border:1px solid #404249;';
+            btn.textContent = `${emoji} ${count}`;
+            container.insertBefore(btn, addBtn);
+        });
     }
 </script>
 {% endblock %}

@@ -15,12 +15,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f'chat_{self.channel_id}'
         self.user = self.scope['user']
 
-        # Sprawdzamy czy użytkownik jest zalogowany
         if not self.user.is_authenticated:
             await self.close()
             return
 
-        # Dołączamy do grupy kanału
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -36,11 +34,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type', 'text')
+
+        if message_type == 'reaction':
+            emoji = data.get('emoji', '')
+            message_id = data.get('message_id')
+            reactions = await self.toggle_reaction(message_id, emoji)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'reaction_update',
+                    'message_id': message_id,
+                    'reactions': reactions,
+                }
+            )
+            return
+
         content = data.get('content', '')
         file_data = data.get('file', None)
         file_name = data.get('file_name', '')
 
-        # Zapisujemy wiadomość do bazy
         message = await self.save_message(
             content=content,
             message_type=message_type,
@@ -48,7 +60,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             file_name=file_name
         )
 
-        # Wysyłamy do wszystkich w grupie
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -65,8 +76,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def chat_message(self, event):
-        # Wysyłamy wiadomość do WebSocket klienta
         await self.send(text_data=json.dumps(event))
+
+    async def reaction_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'reaction_update',
+            'message_id': event['message_id'],
+            'reactions': event['reactions'],
+        }))
+
+    @database_sync_to_async
+    def toggle_reaction(self, message_id, emoji):
+        from .models import Reaction
+        message = Message.objects.get(id=message_id)
+        reaction, created = Reaction.objects.get_or_create(
+            message=message,
+            user=self.user,
+            emoji=emoji
+        )
+        if not created:
+            reaction.delete()
+
+        reactions = {}
+        for r in Reaction.objects.filter(message=message):
+            reactions[r.emoji] = reactions.get(r.emoji, 0) + 1
+        return reactions
 
     @database_sync_to_async
     def save_message(self, content, message_type, file_data, file_name):
@@ -78,12 +112,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message_type=message_type
         )
         if file_data and file_name:
-            # Dekodujemy plik z base64
             format, imgstr = file_data.split(';base64,')
             decoded = base64.b64decode(imgstr)
             message.file.save(file_name, ContentFile(decoded), save=False)
         message.save()
         return message
+
 
 class DMConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -94,7 +128,6 @@ class DMConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Nazwa grupy — sortujemy usernames żeby zawsze była taka sama niezależnie od kierunku
         users = sorted([self.user.username, self.other_username])
         self.room_group_name = f'dm_{users[0]}_{users[1]}'
 
